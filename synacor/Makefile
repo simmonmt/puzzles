@@ -1,14 +1,10 @@
-all: FORCE
-	@root=$$(PWD) ; \
-	for i in src/cmd/* ; do \
-		cd $$i ; \
-		echo $$i ; \
-		GOPATH=$$PWD/../../.. go install ; \
-		[[ $$? -eq 0 ]] || exit 1 ; \
-		cd $$root ; \
-	done
+all:
+	GOPATH=$$PWD go install ./...
 
 run: all
 	bin/vm --ram challenge.bin
+
+clean:
+	$(RM) -R bin pkg
 
 FORCE:
