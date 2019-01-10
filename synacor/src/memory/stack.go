@@ -1,7 +1,5 @@
 package memory
 
-import "fmt"
-
 type Stack struct {
 	cells []uint16
 	cur   int
@@ -24,12 +22,12 @@ func (s *Stack) Push(val uint16) {
 	s.cur = next
 }
 
-func (s *Stack) Pop() (uint16, error) {
+func (s *Stack) Pop() (uint16, bool) {
 	if s.cur == -1 {
-		return 0, fmt.Errorf("empty")
+		return 0, false
 	}
 
 	val := s.cells[s.cur]
 	s.cur--
-	return val, nil
+	return val, true
 }

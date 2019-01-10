@@ -57,6 +57,13 @@ func main() {
 	regFile := &register.File{}
 	stack := memory.NewStack()
 
+	iCtx := instruction.Context{
+		RAM:     ram,
+		RegFile: regFile,
+		Stack:   stack,
+		Verbose: *verbose,
+	}
+
 	var pc uint16
 	for {
 		reader := memory.NewRAMReader(ram, pc)
@@ -70,15 +77,16 @@ func main() {
 			fmt.Printf("%5d: %s\n", pc, inst)
 		}
 
-		cb := inst.Exec(ram, regFile, stack)
+		cb := instruction.CB{
+			NPC: pc + uint16(numRead),
+		}
+
+		inst.Exec(&iCtx, &cb)
 		if cb.Hlt {
 			fmt.Printf("hlt requested at %v\n", pc)
 			break
-		} else if cb.Jmp {
-			pc = cb.NPC
-			numRead = 0
 		}
 
-		pc = pc + uint16(numRead)
+		pc = cb.NPC
 	}
 }

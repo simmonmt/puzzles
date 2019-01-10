@@ -40,3 +40,7 @@ func (r *RAMReader) Read() (uint16, error) {
 	r.off++
 	return val, nil
 }
+
+func (r *RAMReader) Off() uint16 {
+	return r.off
+}
