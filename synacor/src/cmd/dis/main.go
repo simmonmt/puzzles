@@ -9,11 +9,13 @@ import (
 
 	"instruction"
 	"reader"
+	"symtab"
 )
 
 var (
-	inputPath = flag.String("input", "", "input in binary format")
-	lenFlag   = flag.Int("len", -1, "Number of shorts to print")
+	inputPath  = flag.String("input", "", "input in binary format")
+	lenFlag    = flag.Int("len", -1, "Number of shorts to print")
+	symTabPath = flag.String("symtab", "", "path to symbol table")
 )
 
 type BinIO struct {
@@ -59,7 +61,7 @@ func (bio *BinIO) Close() {
 	}
 }
 
-func dump(sr reader.Short) {
+func dump(sr reader.Short, st *symtab.SymTab) {
 	for i := 0; *lenFlag == -1 || i < *lenFlag; i++ {
 		addr := sr.Off()
 		inst, bytesRead, err := instruction.Read(sr)
@@ -86,5 +88,19 @@ func main() {
 	}
 	defer bio.Close()
 
-	dump(bio)
+	var st *symtab.SymTab
+	if *symTabPath != "" {
+		fp, err := os.Open(*symTabPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer fp.Close()
+
+		st, err = symtab.Read(fp)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	dump(bio, st)
 }
