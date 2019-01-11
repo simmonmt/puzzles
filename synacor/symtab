@@ -1,0 +1,21 @@
+selftest		2-884
+fail_no_rmem_op		1239-1261
+fail_no_wmem_op		1262-1284
+fail_wmem_opwrite	941-977
+
+init_data		885-939
+decode_data 		1723-1766
+
+xor			2125-2148
+
+# in: r1  (mem ptr?)
+#     r2  (function pointer)
+#
+# something r2+[0..n] while <= *r1
+# 
+func1			1458-1517
+
+# calls func1 w/r2=1528
+func2			1518-1527
+
+out_r1			1528-1530

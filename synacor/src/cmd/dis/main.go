@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 
 	"instruction"
 	"reader"
@@ -16,6 +17,7 @@ var (
 	inputPath  = flag.String("input", "", "input in binary format")
 	lenFlag    = flag.Int("len", -1, "Number of shorts to print")
 	symTabPath = flag.String("symtab", "", "path to symbol table")
+	full       = flag.Bool("full", false, "include read bytes and raw addrs")
 )
 
 type BinIO struct {
@@ -61,16 +63,90 @@ func (bio *BinIO) Close() {
 	}
 }
 
+type SaverReader struct {
+	r  reader.Short
+	vr [5]uint16
+	n  int
+}
+
+func NewSaverReader(r reader.Short) *SaverReader {
+	return &SaverReader{
+		r: r,
+	}
+}
+
+func (sr *SaverReader) Read() (uint16, error) {
+	v, err := sr.r.Read()
+	if err != nil {
+		return 0, err
+	}
+
+	if sr.n < len(sr.vr) {
+		sr.vr[sr.n] = v
+		sr.n++
+	}
+
+	return v, err
+}
+
+func (sr *SaverReader) Off() uint16 {
+	return sr.r.Off()
+}
+
+// Returns a slice containing the last values read. Invalidated upon next Read
+// call.
+func (sr *SaverReader) ValuesRead() []uint16 {
+	values := sr.vr[0:sr.n]
+	sr.n = 0
+	return values
+}
+
+func addrToName(addr uint16, st *symtab.SymTab) string {
+	if st != nil {
+		if ent, found := st.LookupAddr(addr); found {
+			off := addr - ent.Start
+			if off == 0 {
+				return ent.Name
+			}
+			return fmt.Sprintf("%s+%d", ent.Name, off)
+		}
+	}
+	return strconv.Itoa(int(addr))
+}
+
 func dump(sr reader.Short, st *symtab.SymTab) {
+	saverReader := NewSaverReader(sr)
+
 	for i := 0; *lenFlag == -1 || i < *lenFlag; i++ {
 		addr := sr.Off()
-		inst, bytesRead, err := instruction.Read(sr)
-		if bytesRead == 0 {
+		inst, numRead, instErr := instruction.Read(saverReader)
+		if numRead == 0 {
 			break
-		} else if err != nil {
-			fmt.Printf("%5d: error: %v\n", addr, err)
+		}
+
+		fmt.Printf("%30s:  ", addrToName(addr, st))
+
+		if *full {
+			fmt.Printf("%5d:  ", addr)
+
+			vr := saverReader.ValuesRead()
+			if len(vr) > 4 {
+				panic("long read")
+			}
+			for _, v := range vr {
+				fmt.Printf("%5d ", v)
+			}
+			for i := len(vr); i < 4; i++ {
+				fmt.Print("      ")
+			}
+
+			fmt.Print(" ")
+		}
+
+		if instErr != nil {
+			fmt.Printf("error: %v\n", instErr)
 		} else {
-			fmt.Printf("%5d: %s\n", addr, inst.String())
+			fmt.Println(inst.ToString(st))
 		}
 	}
 }
@@ -90,14 +166,8 @@ func main() {
 
 	var st *symtab.SymTab
 	if *symTabPath != "" {
-		fp, err := os.Open(*symTabPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer fp.Close()
-
-		st, err = symtab.Read(fp)
-		if err != nil {
+		var err error
+		if st, err = symtab.ReadFromPath(*symTabPath); err != nil {
 			log.Fatal(err)
 		}
 	}

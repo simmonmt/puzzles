@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/HuKeping/rbtree"
@@ -17,6 +19,13 @@ type SymEnt struct {
 
 func (e *SymEnt) Less(than rbtree.Item) bool {
 	return e.Start < than.(*SymEnt).Start
+}
+
+func (e *SymEnt) OffStr(addr uint16) string {
+	if addr == e.Start {
+		return e.Name
+	}
+	return fmt.Sprintf("%s+%d", e.Name, addr-e.Start)
 }
 
 type SymTab struct {
@@ -32,25 +41,41 @@ func New() *SymTab {
 }
 
 var (
-	symtabPattern = regexp.MustCompile(`^(\w+)\s+([0-9]+)(?:-([0-9]))?(?:\s*#.*)$`)
+	symtabPattern = regexp.MustCompile(`^(\w+)\s+([0-9]+)(?:-([0-9]+))?(?:\s*#.*)?$`)
 )
 
 func Read(r io.Reader) (*SymTab, error) {
 	st := New()
 
 	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
+	for lineNum := 1; scanner.Scan(); lineNum++ {
 		line := strings.TrimSpace(scanner.Text())
-		if strings.HasPrefix(line, "#") {
+		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
 
 		parts := symtabPattern.FindStringSubmatch(line)
 		if parts == nil {
-			panic("nomatch")
-		} else {
-			panic("match")
+			return nil, fmt.Errorf("%d: parse fail", lineNum)
 		}
+
+		name := parts[1]
+		startStr := parts[2]
+		endStr := parts[3]
+		if endStr == "" {
+			endStr = startStr
+		}
+
+		start, err := strconv.ParseUint(startStr, 10, 16)
+		if err != nil {
+			return nil, fmt.Errorf("%d: parse start fail: %v", lineNum, err)
+		}
+		end, err := strconv.ParseUint(endStr, 10, 16)
+		if err != nil {
+			return nil, fmt.Errorf("%d: parse end fail: %v", lineNum, err)
+		}
+
+		st.Add(name, uint16(start), uint16(end))
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
@@ -59,7 +84,17 @@ func Read(r io.Reader) (*SymTab, error) {
 	return st, nil
 }
 
-func (st *SymTab) Add(start, end uint16, name string) error {
+func ReadFromPath(path string) (*SymTab, error) {
+	fp, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer fp.Close()
+
+	return Read(fp)
+}
+
+func (st *SymTab) Add(name string, start, end uint16) error {
 	if _, found := st.byName[name]; found {
 		return fmt.Errorf("%v already exists in table", name)
 	}
@@ -87,4 +122,13 @@ func (st *SymTab) LookupAddr(addr uint16) (SymEnt, bool) {
 		return SymEnt{}, false
 	}
 	return *match, true
+}
+
+func (st *SymTab) LookupName(name string) (SymEnt, bool) {
+	ent, found := st.byName[name]
+	if !found {
+		return SymEnt{}, false
+	}
+
+	return *ent, true
 }
