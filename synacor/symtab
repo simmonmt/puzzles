@@ -9,13 +9,13 @@ decode_data 		1723-1766
 xor			2125-2148
 
 # in: r1  (mem ptr?)
-#     r2  (function pointer)
+#     r2  (visitor)
 #
 # something r2+[0..n] while <= *r1
 # 
 func1			1458-1517
 
-# calls func1 w/r2=1528
+# calls func1 w/r2=out_r1
 func2			1518-1527
 
 out_r1			1528-1530

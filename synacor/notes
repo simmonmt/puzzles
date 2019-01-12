@@ -1,0 +1,123 @@
+;; This buffer is for text that is not saved, and for Lisp evaluation.
+;; To create a file, visit it with C-x C-f and enter text in its buffer.
+
+no inputs?
+reads 6068
+
+                          ;; decode 6068 to 30050
+                          1723:  push r1
+                          1725:  push r2
+                          1727:  set r2 6068           r2 = 6068
+                          1730:  rmem r1, r2           r1 = [6068]
+                          1733:  push r2               save r2
+                          1735:  mult r2, r2, r2       r2 = r2 << 1
+                          1739:  call 2125 xor         r1 = r1 xor r2
+                          1741:  set r2 16724          r2 = 16724  0x4154
+                          1744:  call 2125 xor         r1 = r1 xor 0x4154
+                          1746:  pop r2                restore r2 (6068)
+                          1748:  wmem r2, r1           write r1 to 6068
+                          1751:  add r2, r2, 1         r2++
+                          1755:  eq r1, 30050, r2      r1=r2=30050
+                          1759:  jf r1 1730
+                          1762:  pop r2
+                          1764:  pop r1
+                          1766:  ret
+
+
+                         func1:   1458:      2 32768              push r1
+                       func1+2:   1460:      2 32771              push r4
+                       func1+4:   1462:      2 32772              push r5
+                       func1+6:   1464:      2 32773              push r6
+                       func1+8:   1466:      2 32774              push r7
+                      func1+10:   1468:      1 32774 32768        set r7 r1
+                      func1+13:   1471:      1 32773 32769        set r6 r2
+                      func1+16:   1474:     15 32772 32768        rmem r5, r1
+                      func1+19:   1477:      1 32769     0        set r2 0
+                      func1+22:   1480:      9 32771     1 32769  add r4, 1, r2
+                      func1+26:   1484:      5 32768 32771 32772  gt r1, r4, r5
+                      func1+30:   1488:      7 32768  1507        jt r1 1507 <func1+49>
+                      func1+33:   1491:      9 32771 32771 32774  add r4, r4, r7
+                      func1+37:   1495:     15 32768 32771        rmem r1, r4
+                      func1+40:   1498:     17 32773              call r6
+                      func1+42:   1500:      9 32769 32769     1  add r2, r2, 1
+                      func1+46:   1504:      7 32769  1480        jt r2 1480 <func1+22>
+                      func1+49:   1507:      3 32774              pop r7
+                      func1+51:   1509:      3 32773              pop r6
+                      func1+53:   1511:      3 32772              pop r5
+                      func1+55:   1513:      3 32771              pop r4
+                      func1+57:   1515:      3 32768              pop r1
+
+in:
+  r1=mem ptr
+  r2=visitor func ptr
+out: r2?
+
+  r7=r1
+  r6=r2
+  r5=*r1
+  r2=0
+loop:
+  r4=r2+1
+  r1= r4 > r5 ? 1 : 0
+  if r1 == 1 return
+  r4=r4+r7
+  r1=*r4
+  r6()
+  r2=r2+1
+  if rt > 0 goto loop  // should always be true?
+
+  r7=r1
+  r5=*r1
+  r2=0
+loop:
+  r4=r2+1
+  if r4 > r5 return
+  r4=r4+r7
+  r1=*r4
+  visitor()
+  r2++
+  goto loop
+
+
+  r7=r1
+  r5=*r1
+
+  for r2 = 0; ;r2++ {
+    r4=r2+1
+    if r4 > r5 return
+    r4=r4+r7
+    r1=*r4
+    visitor()
+
+
+
+
+                           978:    978:      9 32769    10  6080  add r2, 10, 6080
+                           982:    982:      9 32769 32769     1  add r2, r2, 1          ;; r2 = 6091
+                           986:    986:     15 32770  6116        rmem r3, 6116          ;; r3 = *6116
+                           989:    989:      9 32770 32770  6116  add r3, r3, 6116       ;; r3=r3+6116
+                           993:    993:      1 32768  6116        set r1 6116            ;;
+                           996:    996:      9 32768 32768     1  add r1, r1, 1          ;; r1=6117
+                          1000:   1000:      5 32771 32768 32770  gt r4, r1, r3          ;; for r1 = 6117; r1 <= r3; r1++, r2++ {
+                          1004:   1004:      7 32771  1023        jt r4 1023             ;;   
+                          1007:   1007:     15 32772 32768        rmem r5, r1            ;;
+                          1010:   1010:     16 32769 32772        wmem r2, r5            ;;   *r2 = *r1 
+                          1013:   1013:      9 32768 32768     1  add r1, r1, 1          ;; 
+                          1017:   1017:      9 32769 32769     1  add r2, r2, 1          ;; 
+                          1021:   1021:      6  1000              jmp 1000               ;; }
+                          1023:   1023:     15 32768  6080        rmem r1, 6080          ;;
+                          1026:   1026:     15 32769  6099        rmem r2, 6099          ;;
+                          1029:   1029:      9 32768 32768 32769  add r1, r1, r2         ;;
+                          1033:   1033:      9 32768 32768     1  add r1, r1, 1          ;; r1 = *6080 + *6099 + 1
+                          1037:   1037:     16  6080 32768        wmem 6080, r1          ;; *6080 = r1
+                          1040:   1040:     16  6099    44        wmem 6099, 44          ;; *6099 = r4
+                          1043:   1043:      1 32768  6080        set r1 6080            ;; r1 = 6080
+                          1046:   1046:     17  1518              call 1518 <func2>      ;; func2()
+
+
+comment annotation
+
+line or line range 400 or 400-435
+single colon means rest of line is annotation for that line
+double colon means following lines are block comment with blanks at beginning end of block?
+
