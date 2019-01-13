@@ -1,0 +1,119 @@
+package comments
+
+import (
+	"bufio"
+	"fmt"
+	"io"
+	"regexp"
+	"strconv"
+	"strings"
+)
+
+type Type int
+
+const (
+	Single Type = iota
+	Block
+)
+
+func (t Type) String() string {
+	switch t {
+	case Single:
+		return "single"
+	case Block:
+		return "block"
+	default:
+		panic("unknown")
+	}
+}
+
+type Comment struct {
+	Type       Type
+	Start, End int
+	Lines      []string
+}
+
+func (c *Comment) String() string {
+	var r string
+	if c.Start == c.End {
+		r = strconv.Itoa(c.Start)
+	} else {
+		r = fmt.Sprintf("%d-%d", c.Start, c.End)
+	}
+
+	return fmt.Sprintf("%s:%s:%v", c.Type, r, c.Lines)
+}
+
+var (
+	numberLinePattern  = regexp.MustCompile(`^(\d+)(?:-(\d+))?(?:\s+//\s+(\S.*))?$`)
+	commentLinePattern = regexp.MustCompile(`^//\s+(\S.*)$`)
+)
+
+func matchCommentLine(line string) (string, bool) {
+	parts := commentLinePattern.FindStringSubmatch(line)
+	if parts == nil {
+		return "", false
+	}
+
+	return parts[1], true
+}
+
+func Read(r io.Reader) (map[int][]*Comment, error) {
+	out := map[int][]*Comment{}
+
+	var curBlock *Comment
+
+	scanner := bufio.NewScanner(r)
+	for lineNum := 1; scanner.Scan(); lineNum++ {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+
+		if comment, found := matchCommentLine(line); found {
+			if len(curBlock.Lines) == 0 {
+				if _, found := out[curBlock.Start]; !found {
+					out[curBlock.Start] = []*Comment{}
+				}
+				out[curBlock.Start] = append(out[curBlock.Start], curBlock)
+			}
+			curBlock.Lines = append(curBlock.Lines, comment)
+
+		} else if parts := numberLinePattern.FindStringSubmatch(line); parts != nil {
+			startStr, endStr, comment := parts[1], parts[2], parts[3]
+
+			start, err := strconv.ParseUint(startStr, 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("%d: bad start: %v", lineNum, err)
+			}
+
+			end := start
+			if endStr != "" {
+				var err error
+				end, err = strconv.ParseUint(endStr, 10, 32)
+				if err != nil {
+					return nil, fmt.Errorf("%d: bad end: %v", lineNum, err)
+				}
+			}
+
+			if _, found := out[int(start)]; found {
+				return nil, fmt.Errorf("%d: duplicate start %v", lineNum, start)
+			}
+
+			if comment != "" {
+				out[int(start)] = []*Comment{&Comment{Single, int(start), int(start), []string{comment}}}
+			}
+
+			curBlock = &Comment{Block, int(start), int(end), []string{}}
+
+		} else {
+			return nil, fmt.Errorf("%d: unable to parse", lineNum)
+		}
+
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
