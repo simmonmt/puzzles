@@ -15,6 +15,7 @@ func TestRead(t *testing.T) {
 	st, err := Read(strings.NewReader(in))
 	if err != nil {
 		t.Errorf("read failed: %v", err)
+		return
 	}
 
 	tests := []struct {
