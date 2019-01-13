@@ -75,15 +75,12 @@ func argToStr(val uint16) string {
 func tgtToStr(val uint16, st *symtab.SymTab) string {
 	if isReg(val) {
 		return regName(regNum(val))
-	} else {
-		ent, found := st.LookupAddr(val)
-		if found {
+	} else if st != nil {
+		if ent, found := st.LookupAddr(val); found {
 			return fmt.Sprintf("%d <%s>", val, ent.OffStr(val))
-		} else {
-			return strconv.Itoa(int(val))
 		}
-
 	}
+	return strconv.Itoa(int(val))
 }
 
 func regOrVal(num uint16, regFile *register.File) uint16 {
