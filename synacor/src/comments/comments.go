@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -44,6 +45,38 @@ func (c *Comment) String() string {
 	return fmt.Sprintf("%s:%s:%v", c.Type, r, c.Lines)
 }
 
+type Comments map[int][]*Comment
+
+func (cs Comments) GetSingle(line int) (string, bool) {
+	ca, found := cs[line]
+	if !found {
+		return "", false
+	}
+
+	for _, c := range ca {
+		if c.Type == Single {
+			return c.Lines[0], true
+		}
+	}
+
+	return "", false
+}
+
+func (cs Comments) GetBlock(line int) *Comment {
+	ca, found := cs[line]
+	if !found {
+		return nil
+	}
+
+	for _, c := range ca {
+		if c.Type == Block {
+			return c
+		}
+	}
+
+	return nil
+}
+
 var (
 	numberLinePattern  = regexp.MustCompile(`^(\d+)(?:-(\d+))?(?:\s+//\s+(\S.*))?$`)
 	commentLinePattern = regexp.MustCompile(`^//\s+(\S.*)$`)
@@ -58,7 +91,7 @@ func matchCommentLine(line string) (string, bool) {
 	return parts[1], true
 }
 
-func Read(r io.Reader) (map[int][]*Comment, error) {
+func Read(r io.Reader) (Comments, error) {
 	out := map[int][]*Comment{}
 
 	var curBlock *Comment
@@ -116,4 +149,14 @@ func Read(r io.Reader) (map[int][]*Comment, error) {
 	}
 
 	return out, nil
+}
+
+func ReadFromPath(path string) (Comments, error) {
+	fp, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer fp.Close()
+
+	return Read(fp)
 }

@@ -16,13 +16,13 @@ func TestRead(t *testing.T) {
 		10 // ten
 	`
 
-	cMap, err := Read(strings.NewReader(in))
+	cs, err := Read(strings.NewReader(in))
 	if err != nil {
 		t.Errorf("read failed: %v", err)
 		return
 	}
 
-	expected := map[int][]*Comment{
+	expectedComments := Comments{
 		3: []*Comment{
 			&Comment{Single, 3, 3, []string{"foo"}},
 			&Comment{Block, 3, 3, []string{"bar", "baz"}},
@@ -35,7 +35,23 @@ func TestRead(t *testing.T) {
 		},
 	}
 
-	if !reflect.DeepEqual(cMap, expected) {
-		t.Errorf("Read() = %+v, want %+v", cMap, expected)
+	if !reflect.DeepEqual(cs, expectedComments) {
+		t.Errorf("Read() = %+v, want %+v", cs, expectedComments)
+		return
+	}
+
+	if comment, found := cs.GetSingle(3); !found || comment != "foo" {
+		t.Errorf(`GetSingle(3) = "%s", %v, want "foo", true`, comment, found)
+	}
+	if comment, found := cs.GetSingle(4); found {
+		t.Errorf(`GetSingle(3) = "%s", %v, want _, false`, comment, found)
+	}
+
+	expectedBlock := &Comment{Block, 3, 3, []string{"bar", "baz"}}
+	if block := cs.GetBlock(3); !reflect.DeepEqual(block, expectedBlock) {
+		t.Errorf(`GetBlock(3) = %+v, want %+v`, block, expectedBlock)
+	}
+	if block := cs.GetBlock(6); block != nil {
+		t.Errorf(`GetBlock(6) = %+v, want nil`, block)
 	}
 }
