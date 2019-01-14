@@ -45,9 +45,9 @@ func (c *Comment) String() string {
 	return fmt.Sprintf("%s:%s:%v", c.Type, r, c.Lines)
 }
 
-type Comments map[int][]*Comment
+type Registry map[int][]*Comment
 
-func (cs Comments) GetSingle(line int) (string, bool) {
+func (cs Registry) GetSingle(line int) (string, bool) {
 	ca, found := cs[line]
 	if !found {
 		return "", false
@@ -62,7 +62,7 @@ func (cs Comments) GetSingle(line int) (string, bool) {
 	return "", false
 }
 
-func (cs Comments) GetBlock(line int) *Comment {
+func (cs Registry) GetBlock(line int) *Comment {
 	ca, found := cs[line]
 	if !found {
 		return nil
@@ -91,7 +91,7 @@ func matchCommentLine(line string) (string, bool) {
 	return parts[1], true
 }
 
-func Read(r io.Reader) (Comments, error) {
+func Read(r io.Reader) (Registry, error) {
 	out := map[int][]*Comment{}
 
 	var curBlock *Comment
@@ -151,7 +151,7 @@ func Read(r io.Reader) (Comments, error) {
 	return out, nil
 }
 
-func ReadFromPath(path string) (Comments, error) {
+func ReadFromPath(path string) (Registry, error) {
 	fp, err := os.Open(path)
 	if err != nil {
 		return nil, err

@@ -22,7 +22,7 @@ func TestRead(t *testing.T) {
 		return
 	}
 
-	expectedComments := Comments{
+	expected := Registry{
 		3: []*Comment{
 			&Comment{Single, 3, 3, []string{"foo"}},
 			&Comment{Block, 3, 3, []string{"bar", "baz"}},
@@ -35,8 +35,8 @@ func TestRead(t *testing.T) {
 		},
 	}
 
-	if !reflect.DeepEqual(cs, expectedComments) {
-		t.Errorf("Read() = %+v, want %+v", cs, expectedComments)
+	if !reflect.DeepEqual(cs, expected) {
+		t.Errorf("Read() = %+v, want %+v", cs, expected)
 		return
 	}
 
