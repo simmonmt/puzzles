@@ -28,13 +28,25 @@ func (e *SymEnt) OffStr(addr uint16) string {
 	return fmt.Sprintf("%s+%d", e.Name, addr-e.Start)
 }
 
-type SymTab struct {
+type SymTab interface {
+	Add(name string, start, end uint16) error
+	LookupAddr(addr uint16) (SymEnt, bool)
+	LookupName(name string) (SymEnt, bool)
+}
+
+type NoEntriesSymTab struct{}
+
+func (s *NoEntriesSymTab) Add(name string, start, end uint16) error { return fmt.Errorf("unsupported") }
+func (s *NoEntriesSymTab) LookupAddr(addr uint16) (SymEnt, bool)    { return SymEnt{}, false }
+func (s *NoEntriesSymTab) LookupName(name string) (SymEnt, bool)    { return SymEnt{}, false }
+
+type symTabImpl struct {
 	tree   *rbtree.Rbtree
 	byName map[string]*SymEnt
 }
 
-func New() *SymTab {
-	return &SymTab{
+func New() SymTab {
+	return &symTabImpl{
 		tree:   rbtree.New(),
 		byName: map[string]*SymEnt{},
 	}
@@ -44,7 +56,7 @@ var (
 	symtabPattern = regexp.MustCompile(`^(\w+)\s+([0-9]+)(?:-([0-9]+))?(?:\s*#.*)?$`)
 )
 
-func Read(r io.Reader) (*SymTab, error) {
+func Read(r io.Reader) (SymTab, error) {
 	st := New()
 
 	scanner := bufio.NewScanner(r)
@@ -84,7 +96,7 @@ func Read(r io.Reader) (*SymTab, error) {
 	return st, nil
 }
 
-func ReadFromPath(path string) (*SymTab, error) {
+func ReadFromPath(path string) (SymTab, error) {
 	fp, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -94,7 +106,7 @@ func ReadFromPath(path string) (*SymTab, error) {
 	return Read(fp)
 }
 
-func (st *SymTab) Add(name string, start, end uint16) error {
+func (st *symTabImpl) Add(name string, start, end uint16) error {
 	if _, found := st.byName[name]; found {
 		return fmt.Errorf("%v already exists in table", name)
 	}
@@ -106,7 +118,7 @@ func (st *SymTab) Add(name string, start, end uint16) error {
 	return nil
 }
 
-func (st *SymTab) LookupAddr(addr uint16) (SymEnt, bool) {
+func (st *symTabImpl) LookupAddr(addr uint16) (SymEnt, bool) {
 	pivot := &SymEnt{Start: addr}
 
 	var match *SymEnt
@@ -124,7 +136,7 @@ func (st *SymTab) LookupAddr(addr uint16) (SymEnt, bool) {
 	return *match, true
 }
 
-func (st *SymTab) LookupName(name string) (SymEnt, bool) {
+func (st *symTabImpl) LookupName(name string) (SymEnt, bool) {
 	ent, found := st.byName[name]
 	if !found {
 		return SymEnt{}, false

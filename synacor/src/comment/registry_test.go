@@ -1,4 +1,4 @@
-package comments
+package comment
 
 import (
 	"reflect"
@@ -22,7 +22,7 @@ func TestRead(t *testing.T) {
 		return
 	}
 
-	expected := Registry{
+	expected := registryImpl{
 		3: []*Comment{
 			&Comment{Single, 3, 3, []string{"foo"}},
 			&Comment{Block, 3, 3, []string{"bar", "baz"}},

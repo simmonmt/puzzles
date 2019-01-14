@@ -1,4 +1,4 @@
-package comments
+package comment
 
 import (
 	"bufio"
@@ -45,15 +45,25 @@ func (c *Comment) String() string {
 	return fmt.Sprintf("%s:%s:%v", c.Type, r, c.Lines)
 }
 
-type Registry map[int][]*Comment
+type Registry interface {
+	GetSingle(line int) (string, bool)
+	GetBlock(line int) *Comment
+}
 
-func (cs Registry) GetSingle(line int) (string, bool) {
-	ca, found := cs[line]
+type NullRegistry struct{}
+
+func (r *NullRegistry) GetSingle(line int) (string, bool) { return "", false }
+func (r *NullRegistry) GetBlock(line int) *Comment        { return nil }
+
+type registryImpl map[int][]*Comment
+
+func (r registryImpl) GetSingle(line int) (string, bool) {
+	arr, found := r[line]
 	if !found {
 		return "", false
 	}
 
-	for _, c := range ca {
+	for _, c := range arr {
 		if c.Type == Single {
 			return c.Lines[0], true
 		}
@@ -62,13 +72,13 @@ func (cs Registry) GetSingle(line int) (string, bool) {
 	return "", false
 }
 
-func (cs Registry) GetBlock(line int) *Comment {
-	ca, found := cs[line]
+func (r registryImpl) GetBlock(line int) *Comment {
+	arr, found := r[line]
 	if !found {
 		return nil
 	}
 
-	for _, c := range ca {
+	for _, c := range arr {
 		if c.Type == Block {
 			return c
 		}
@@ -92,7 +102,7 @@ func matchCommentLine(line string) (string, bool) {
 }
 
 func Read(r io.Reader) (Registry, error) {
-	out := map[int][]*Comment{}
+	out := registryImpl{}
 
 	var curBlock *Comment
 

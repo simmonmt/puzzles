@@ -8,16 +8,18 @@ import (
 	"os"
 	"strconv"
 
+	"comment"
 	"instruction"
 	"reader"
 	"symtab"
 )
 
 var (
-	inputPath  = flag.String("input", "", "input in binary format")
-	lenFlag    = flag.Int("len", -1, "Number of shorts to print")
-	symTabPath = flag.String("symtab", "", "path to symbol table")
-	full       = flag.Bool("full", false, "include read bytes and raw addrs")
+	inputPath    = flag.String("input", "", "input in binary format")
+	lenFlag      = flag.Int("len", -1, "Number of shorts to print")
+	commentsPath = flag.String("comments", "", "path to comment registry")
+	symTabPath   = flag.String("symtab", "", "path to symbol table")
+	full         = flag.Bool("full", false, "include read bytes and raw addrs")
 )
 
 type BinIO struct {
@@ -101,24 +103,47 @@ func (sr *SaverReader) ValuesRead() []uint16 {
 	return values
 }
 
-func addrToName(addr uint16, st *symtab.SymTab) string {
-	if st != nil {
-		if ent, found := st.LookupAddr(addr); found {
-			off := addr - ent.Start
-			if off == 0 {
-				return ent.Name
-			}
-			return fmt.Sprintf("%s+%d", ent.Name, off)
+func addrToName(addr uint16, st symtab.SymTab) string {
+	if ent, found := st.LookupAddr(addr); found {
+		off := addr - ent.Start
+		if off == 0 {
+			return ent.Name
 		}
+		return fmt.Sprintf("%s+%d", ent.Name, off)
 	}
 	return strconv.Itoa(int(addr))
 }
 
-func dump(sr reader.Short, st *symtab.SymTab) {
+var (
+	namePad = "                                 " // 33
+	fullPad = "                                "  // 8 + 4*6 = 32
+)
+
+func dump(sr reader.Short, st symtab.SymTab, cReg comment.Registry) {
 	saverReader := NewSaverReader(sr)
+
+	var curBlock *comment.Comment
 
 	for i := 0; *lenFlag == -1 || i < *lenFlag; i++ {
 		addr := sr.Off()
+
+		if block := cReg.GetBlock(int(addr)); block != nil {
+			if curBlock != nil {
+				panic("nested block")
+			}
+			curBlock = block
+
+			padLen := 33
+			if *full {
+				padLen += 33 // 8 + 4*6 + 1
+			}
+
+			fmt.Println()
+			for _, line := range block.Lines {
+				fmt.Printf("%*s// %s\n", padLen, "", line)
+			}
+		}
+
 		inst, numRead, instErr := instruction.Read(saverReader)
 		if numRead == 0 {
 			break
@@ -144,9 +169,18 @@ func dump(sr reader.Short, st *symtab.SymTab) {
 		}
 
 		if instErr != nil {
-			fmt.Printf("error: %v\n", instErr)
+			fmt.Println("error: ", instErr)
 		} else {
-			fmt.Println(inst.ToString(st))
+			fmt.Printf("%-30s", inst.ToString(st))
+			if comment, found := cReg.GetSingle(int(addr)); found {
+				fmt.Print("// ", comment)
+			}
+			fmt.Println()
+		}
+
+		if curBlock != nil && int(addr) == curBlock.End {
+			fmt.Println()
+			curBlock = nil
 		}
 	}
 }
@@ -164,13 +198,21 @@ func main() {
 	}
 	defer bio.Close()
 
-	var st *symtab.SymTab
+	var symTab symtab.SymTab = &symtab.NoEntriesSymTab{}
 	if *symTabPath != "" {
 		var err error
-		if st, err = symtab.ReadFromPath(*symTabPath); err != nil {
+		if symTab, err = symtab.ReadFromPath(*symTabPath); err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	dump(bio, st)
+	var commentRegistry comment.Registry = &comment.NullRegistry{}
+	if *commentsPath != "" {
+		var err error
+		if commentRegistry, err = comment.ReadFromPath(*commentsPath); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	dump(bio, symTab, commentRegistry)
 }

@@ -72,13 +72,11 @@ func argToStr(val uint16) string {
 	}
 }
 
-func tgtToStr(val uint16, st *symtab.SymTab) string {
+func tgtToStr(val uint16, st symtab.SymTab) string {
 	if isReg(val) {
 		return regName(regNum(val))
-	} else if st != nil {
-		if ent, found := st.LookupAddr(val); found {
-			return fmt.Sprintf("%d <%s>", val, ent.OffStr(val))
-		}
+	} else if ent, found := st.LookupAddr(val); found {
+		return fmt.Sprintf("%d <%s>", val, ent.OffStr(val))
 	}
 	return strconv.Itoa(int(val))
 }
@@ -92,7 +90,7 @@ func regOrVal(num uint16, regFile *register.File) uint16 {
 }
 
 type Inst interface {
-	ToString(st *symtab.SymTab) string
+	ToString(st symtab.SymTab) string
 	Exec(ctx *Context, cb *CB)
 }
 
@@ -100,7 +98,7 @@ type add struct {
 	a, b, c uint16
 }
 
-func (i *add) ToString(st *symtab.SymTab) string {
+func (i *add) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("add %v, %v, %v",
 		argToStr(i.a), argToStr(i.b), argToStr(i.c))
 }
@@ -116,7 +114,7 @@ type and struct {
 	a, b, c uint16
 }
 
-func (i *and) ToString(st *symtab.SymTab) string {
+func (i *and) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("and %v, %v, %v",
 		argToStr(i.a), argToStr(i.b), argToStr(i.c))
 }
@@ -129,7 +127,7 @@ type call struct {
 	a uint16
 }
 
-func (i *call) ToString(st *symtab.SymTab) string {
+func (i *call) ToString(st symtab.SymTab) string {
 	return "call " + tgtToStr(i.a, st)
 }
 
@@ -142,7 +140,7 @@ type eq struct {
 	a, b, c uint16
 }
 
-func (i *eq) ToString(st *symtab.SymTab) string {
+func (i *eq) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("eq %v, %v, %v",
 		argToStr(i.a), argToStr(i.b), argToStr(i.c))
 }
@@ -159,7 +157,7 @@ type gt struct {
 	a, b, c uint16
 }
 
-func (i *gt) ToString(st *symtab.SymTab) string {
+func (i *gt) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("gt %v, %v, %v",
 		argToStr(i.a), argToStr(i.b), argToStr(i.c))
 }
@@ -176,7 +174,7 @@ type in struct {
 	a uint16
 }
 
-func (i *in) ToString(st *symtab.SymTab) string {
+func (i *in) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("in %v", argToStr(i.a))
 }
 
@@ -192,7 +190,7 @@ func (i *in) Exec(ctx *Context, cb *CB) {
 
 type hlt struct{}
 
-func (i *hlt) ToString(st *symtab.SymTab) string { return "hlt" }
+func (i *hlt) ToString(st symtab.SymTab) string { return "hlt" }
 
 func (i *hlt) Exec(ctx *Context, cb *CB) {
 	cb.Hlt = true
@@ -202,7 +200,7 @@ type jmp struct {
 	a uint16
 }
 
-func (i *jmp) ToString(st *symtab.SymTab) string {
+func (i *jmp) ToString(st symtab.SymTab) string {
 	return "jmp " + tgtToStr(i.a, st)
 }
 
@@ -214,7 +212,7 @@ type jt struct {
 	cond, tgt uint16
 }
 
-func (i *jt) ToString(st *symtab.SymTab) string {
+func (i *jt) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("jt %s %s", argToStr(i.cond), tgtToStr(i.tgt, st))
 }
 
@@ -230,7 +228,7 @@ type jf struct {
 	cond, tgt uint16
 }
 
-func (i *jf) ToString(st *symtab.SymTab) string {
+func (i *jf) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("jf %s %s", argToStr(i.cond), tgtToStr(i.tgt, st))
 }
 
@@ -246,7 +244,7 @@ type mod struct {
 	a, b, c uint16
 }
 
-func (i *mod) ToString(st *symtab.SymTab) string {
+func (i *mod) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("mod %v, %v, %v",
 		argToStr(i.a), argToStr(i.b), argToStr(i.c))
 }
@@ -262,7 +260,7 @@ type mult struct {
 	a, b, c uint16
 }
 
-func (i *mult) ToString(st *symtab.SymTab) string {
+func (i *mult) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("mult %v, %v, %v",
 		argToStr(i.a), argToStr(i.b), argToStr(i.c))
 }
@@ -276,14 +274,14 @@ func (i *mult) Exec(ctx *Context, cb *CB) {
 
 type nop struct{}
 
-func (i *nop) ToString(st *symtab.SymTab) string { return "nop" }
-func (i *nop) Exec(ctx *Context, cb *CB)         {}
+func (i *nop) ToString(st symtab.SymTab) string { return "nop" }
+func (i *nop) Exec(ctx *Context, cb *CB)        {}
 
 type not struct {
 	a, b uint16
 }
 
-func (i *not) ToString(st *symtab.SymTab) string {
+func (i *not) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("not %v, %v", argToStr(i.a), argToStr(i.b))
 }
 
@@ -295,7 +293,7 @@ type or struct {
 	a, b, c uint16
 }
 
-func (i *or) ToString(st *symtab.SymTab) string {
+func (i *or) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("or %v, %v, %v",
 		argToStr(i.a), argToStr(i.b), argToStr(i.c))
 }
@@ -306,7 +304,7 @@ func (i *or) Exec(ctx *Context, cb *CB) {
 
 type ret struct{}
 
-func (i *ret) ToString(st *symtab.SymTab) string { return "ret" }
+func (i *ret) ToString(st symtab.SymTab) string { return "ret" }
 
 func (i *ret) Exec(ctx *Context, cb *CB) {
 	dest, found := ctx.Stack.Pop()
@@ -322,7 +320,7 @@ type rmem struct {
 	a, b uint16
 }
 
-func (i *rmem) ToString(st *symtab.SymTab) string {
+func (i *rmem) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("rmem %v, %v", argToStr(i.a), tgtToStr(i.b, st))
 }
 
@@ -335,7 +333,7 @@ type out struct {
 	a uint16
 }
 
-func (i *out) ToString(st *symtab.SymTab) string {
+func (i *out) ToString(st symtab.SymTab) string {
 	if isReg(i.a) {
 		return fmt.Sprintf("out %s", regName(regNum(i.a)))
 	}
@@ -356,7 +354,7 @@ type pop struct {
 	a uint16
 }
 
-func (i *pop) ToString(st *symtab.SymTab) string {
+func (i *pop) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("pop %s", argToStr(i.a))
 }
 
@@ -372,7 +370,7 @@ type push struct {
 	a uint16
 }
 
-func (i *push) ToString(st *symtab.SymTab) string {
+func (i *push) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("push %s", argToStr(i.a))
 }
 
@@ -384,7 +382,7 @@ type set struct {
 	res, src uint16
 }
 
-func (i *set) ToString(st *symtab.SymTab) string {
+func (i *set) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("set %s %s", argToStr(i.res), argToStr(i.src))
 }
 
@@ -396,7 +394,7 @@ type wmem struct {
 	a, b uint16
 }
 
-func (i *wmem) ToString(st *symtab.SymTab) string {
+func (i *wmem) ToString(st symtab.SymTab) string {
 	return fmt.Sprintf("wmem %v, %v", tgtToStr(i.a, st), argToStr(i.b))
 }
 
