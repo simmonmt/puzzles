@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"symtab"
 )
 
 type Type int
@@ -87,10 +89,67 @@ func (r registryImpl) GetBlock(line int) *Comment {
 	return nil
 }
 
-var (
-	numberLinePattern  = regexp.MustCompile(`^(\d+)(?:-(\d+))?(?:\s+//\s+(\S.*))?$`)
-	commentLinePattern = regexp.MustCompile(`^//\s+(\S.*)$`)
+const (
+	addrOrRange            = `(\d+)(?:-(\d+))?`
+	nameWithOptionalOffset = `(\w+)(?:\+(\d+))?`
+	lineComment            = `//\s+(\S.*)`
 )
+
+var (
+	addrLinePattern = regexp.MustCompile(
+		`^(?:` + addrOrRange + `|` + nameWithOptionalOffset + `)(?:\s+` + lineComment + `)?$`)
+	commentLinePattern = regexp.MustCompile(`^` + lineComment + `$`)
+)
+
+func matchAddrLine(line string, symTab symtab.SymTab) (uint, uint, string, error) {
+	parts := addrLinePattern.FindStringSubmatch(line)
+	if parts == nil {
+		return 0, 0, "", fmt.Errorf("parse failure")
+	}
+	comment := parts[5]
+
+	if startStr := parts[1]; startStr != "" {
+		// numeric range
+		start, err := strconv.ParseUint(startStr, 10, 32)
+		if err != nil {
+			return 0, 0, "", fmt.Errorf("bad start: %v", err)
+		}
+
+		end := start
+		if endStr := parts[2]; endStr != "" {
+			end, err = strconv.ParseUint(endStr, 10, 32)
+			if err != nil {
+				return 0, 0, "", fmt.Errorf("bad end: %v", err)
+			}
+		}
+
+		return uint(start), uint(end), comment, nil
+	}
+
+	symName := parts[3]
+	offStr := parts[4]
+
+	symEnt, found := symTab.LookupName(symName)
+	if !found {
+		return 0, 0, "", fmt.Errorf("unknown symbol %s", symName)
+	}
+
+	if offStr == "" {
+		return uint(symEnt.Start), uint(symEnt.End), comment, nil
+	}
+
+	off, err := strconv.ParseUint(offStr, 10, 32)
+	if err != nil {
+		return 0, 0, "", fmt.Errorf("failed to parse offset: %v", err)
+	}
+
+	addr := uint(symEnt.Start) + uint(off)
+	if addr >= symEnt.End {
+		return 0, 0, "", fmt.Errorf("offset extends beyond %v", symName)
+	}
+
+	return addr, addr, comment, nil
+}
 
 func matchCommentLine(line string) (string, bool) {
 	parts := commentLinePattern.FindStringSubmatch(line)
@@ -101,7 +160,7 @@ func matchCommentLine(line string) (string, bool) {
 	return parts[1], true
 }
 
-func Read(r io.Reader) (Registry, error) {
+func Read(r io.Reader, symTab symtab.SymTab) (Registry, error) {
 	out := registryImpl{}
 
 	var curBlock *Comment
@@ -122,23 +181,7 @@ func Read(r io.Reader) (Registry, error) {
 			}
 			curBlock.Lines = append(curBlock.Lines, comment)
 
-		} else if parts := numberLinePattern.FindStringSubmatch(line); parts != nil {
-			startStr, endStr, comment := parts[1], parts[2], parts[3]
-
-			start, err := strconv.ParseUint(startStr, 10, 32)
-			if err != nil {
-				return nil, fmt.Errorf("%d: bad start: %v", lineNum, err)
-			}
-
-			end := start
-			if endStr != "" {
-				var err error
-				end, err = strconv.ParseUint(endStr, 10, 32)
-				if err != nil {
-					return nil, fmt.Errorf("%d: bad end: %v", lineNum, err)
-				}
-			}
-
+		} else if start, end, comment, err := matchAddrLine(line, symTab); err == nil {
 			if _, found := out[int(start)]; found {
 				return nil, fmt.Errorf("%d: duplicate start %v", lineNum, start)
 			}
@@ -150,7 +193,7 @@ func Read(r io.Reader) (Registry, error) {
 			curBlock = &Comment{Block, int(start), int(end), []string{}}
 
 		} else {
-			return nil, fmt.Errorf("%d: unable to parse", lineNum)
+			return nil, fmt.Errorf("%d: unable to parse: %v", lineNum, err)
 		}
 
 	}
@@ -161,12 +204,12 @@ func Read(r io.Reader) (Registry, error) {
 	return out, nil
 }
 
-func ReadFromPath(path string) (Registry, error) {
+func ReadFromPath(path string, symTab symtab.SymTab) (Registry, error) {
 	fp, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer fp.Close()
 
-	return Read(fp)
+	return Read(fp, symTab)
 }

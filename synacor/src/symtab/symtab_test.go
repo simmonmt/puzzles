@@ -54,7 +54,7 @@ func TestLookupAddr(t *testing.T) {
 	st.Add("b", 8, 10)
 
 	tests := []struct {
-		addr  uint16
+		addr  uint
 		found bool
 		ent   SymEnt
 	}{

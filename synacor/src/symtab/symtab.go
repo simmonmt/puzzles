@@ -13,7 +13,7 @@ import (
 )
 
 type SymEnt struct {
-	Start, End uint16
+	Start, End uint
 	Name       string
 }
 
@@ -21,7 +21,7 @@ func (e *SymEnt) Less(than rbtree.Item) bool {
 	return e.Start < than.(*SymEnt).Start
 }
 
-func (e *SymEnt) OffStr(addr uint16) string {
+func (e *SymEnt) OffStr(addr uint) string {
 	if addr == e.Start {
 		return e.Name
 	}
@@ -29,16 +29,16 @@ func (e *SymEnt) OffStr(addr uint16) string {
 }
 
 type SymTab interface {
-	Add(name string, start, end uint16) error
-	LookupAddr(addr uint16) (SymEnt, bool)
+	Add(name string, start, end uint) error
+	LookupAddr(addr uint) (SymEnt, bool)
 	LookupName(name string) (SymEnt, bool)
 }
 
 type NoEntriesSymTab struct{}
 
-func (s *NoEntriesSymTab) Add(name string, start, end uint16) error { return fmt.Errorf("unsupported") }
-func (s *NoEntriesSymTab) LookupAddr(addr uint16) (SymEnt, bool)    { return SymEnt{}, false }
-func (s *NoEntriesSymTab) LookupName(name string) (SymEnt, bool)    { return SymEnt{}, false }
+func (s *NoEntriesSymTab) Add(name string, start, end uint) error { return fmt.Errorf("unsupported") }
+func (s *NoEntriesSymTab) LookupAddr(addr uint) (SymEnt, bool)    { return SymEnt{}, false }
+func (s *NoEntriesSymTab) LookupName(name string) (SymEnt, bool)  { return SymEnt{}, false }
 
 type symTabImpl struct {
 	tree   *rbtree.Rbtree
@@ -87,7 +87,7 @@ func Read(r io.Reader) (SymTab, error) {
 			return nil, fmt.Errorf("%d: parse end fail: %v", lineNum, err)
 		}
 
-		st.Add(name, uint16(start), uint16(end))
+		st.Add(name, uint(start), uint(end))
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func ReadFromPath(path string) (SymTab, error) {
 	return Read(fp)
 }
 
-func (st *symTabImpl) Add(name string, start, end uint16) error {
+func (st *symTabImpl) Add(name string, start, end uint) error {
 	if _, found := st.byName[name]; found {
 		return fmt.Errorf("%v already exists in table", name)
 	}
@@ -118,7 +118,7 @@ func (st *symTabImpl) Add(name string, start, end uint16) error {
 	return nil
 }
 
-func (st *symTabImpl) LookupAddr(addr uint16) (SymEnt, bool) {
+func (st *symTabImpl) LookupAddr(addr uint) (SymEnt, bool) {
 	pivot := &SymEnt{Start: addr}
 
 	var match *SymEnt

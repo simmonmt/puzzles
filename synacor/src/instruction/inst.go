@@ -75,8 +75,8 @@ func argToStr(val uint16) string {
 func tgtToStr(val uint16, st symtab.SymTab) string {
 	if isReg(val) {
 		return regName(regNum(val))
-	} else if ent, found := st.LookupAddr(val); found {
-		return fmt.Sprintf("%d <%s>", val, ent.OffStr(val))
+	} else if ent, found := st.LookupAddr(uint(val)); found {
+		return fmt.Sprintf("%d <%s>", val, ent.OffStr(uint(val)))
 	}
 	return strconv.Itoa(int(val))
 }

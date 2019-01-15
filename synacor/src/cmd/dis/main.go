@@ -104,8 +104,8 @@ func (sr *SaverReader) ValuesRead() []uint16 {
 }
 
 func addrToName(addr uint16, st symtab.SymTab) string {
-	if ent, found := st.LookupAddr(addr); found {
-		off := addr - ent.Start
+	if ent, found := st.LookupAddr(uint(addr)); found {
+		off := addr - uint16(ent.Start)
 		if off == 0 {
 			return ent.Name
 		}
@@ -113,11 +113,6 @@ func addrToName(addr uint16, st symtab.SymTab) string {
 	}
 	return strconv.Itoa(int(addr))
 }
-
-var (
-	namePad = "                                 " // 33
-	fullPad = "                                "  // 8 + 4*6 = 32
-)
 
 func dump(sr reader.Short, st symtab.SymTab, cReg comment.Registry) {
 	saverReader := NewSaverReader(sr)
@@ -209,7 +204,7 @@ func main() {
 	var commentRegistry comment.Registry = &comment.NullRegistry{}
 	if *commentsPath != "" {
 		var err error
-		if commentRegistry, err = comment.ReadFromPath(*commentsPath); err != nil {
+		if commentRegistry, err = comment.ReadFromPath(*commentsPath, symTab); err != nil {
 			log.Fatal(err)
 		}
 	}

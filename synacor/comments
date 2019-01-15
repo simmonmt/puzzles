@@ -1,2 +1,11 @@
-1723-1766
+937 // rewritten to
+939 // nop ; jt 978
+
+decode_data
 // decode 6068 to 30050
+
+xor
+// r1=r2 XOR r3
+
+fail_wmem_opwrite
+// wmem opwrite fail <hlt>
