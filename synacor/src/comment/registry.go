@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"patterns"
 	"symtab"
 )
 
@@ -90,14 +91,13 @@ func (r registryImpl) GetBlock(line int) *Comment {
 }
 
 const (
-	addrOrRange            = `(\d+)(?:-(\d+))?`
-	nameWithOptionalOffset = `(\w+)(?:\+(\d+))?`
-	lineComment            = `//\s+(\S.*)`
+	addrOrRange = `(\d+)(?:-(\d+))?`
+	lineComment = `//\s+(\S.*)`
 )
 
 var (
 	addrLinePattern = regexp.MustCompile(
-		`^(?:` + addrOrRange + `|` + nameWithOptionalOffset + `)(?:\s+` + lineComment + `)?$`)
+		`^(?:` + addrOrRange + `|` + patterns.NameWithOptionalOffset + `)(?:\s+` + lineComment + `)?$`)
 	commentLinePattern = regexp.MustCompile(`^` + lineComment + `$`)
 )
 

@@ -56,11 +56,11 @@ func isReg(val uint16) bool {
 	return val > 32767
 }
 
-func regNum(val uint16) uint8 {
-	return uint8(val - 32767)
+func regNum(val uint16) uint {
+	return uint(val - 32767)
 }
 
-func regName(num uint8) string {
+func regName(num uint) string {
 	return fmt.Sprintf("r%d", num)
 }
 
@@ -83,7 +83,7 @@ func tgtToStr(val uint16, st symtab.SymTab) string {
 
 func regOrVal(num uint16, regFile *register.File) uint16 {
 	if isReg(num) {
-		return regFile[regNum(num)]
+		return regFile.Get(regNum(num))
 	} else {
 		return num
 	}
@@ -107,7 +107,7 @@ func (i *add) Exec(ctx *Context, cb *CB) {
 	b := regOrVal(i.b, ctx.RegFile)
 	c := regOrVal(i.c, ctx.RegFile)
 	a := (b + c) % 32768
-	ctx.RegFile[regNum(i.a)] = a
+	ctx.RegFile.Set(regNum(i.a), a)
 }
 
 type and struct {
@@ -120,7 +120,7 @@ func (i *and) ToString(st symtab.SymTab) string {
 }
 
 func (i *and) Exec(ctx *Context, cb *CB) {
-	ctx.RegFile[regNum(i.a)] = regOrVal(i.b, ctx.RegFile) & regOrVal(i.c, ctx.RegFile)
+	ctx.RegFile.Set(regNum(i.a), regOrVal(i.b, ctx.RegFile)&regOrVal(i.c, ctx.RegFile))
 }
 
 type call struct {
@@ -150,7 +150,7 @@ func (i *eq) Exec(ctx *Context, cb *CB) {
 	if regOrVal(i.b, ctx.RegFile) == regOrVal(i.c, ctx.RegFile) {
 		res = 1
 	}
-	ctx.RegFile[regNum(i.a)] = res
+	ctx.RegFile.Set(regNum(i.a), res)
 }
 
 type gt struct {
@@ -167,7 +167,7 @@ func (i *gt) Exec(ctx *Context, cb *CB) {
 	if regOrVal(i.b, ctx.RegFile) > regOrVal(i.c, ctx.RegFile) {
 		res = 1
 	}
-	ctx.RegFile[regNum(i.a)] = res
+	ctx.RegFile.Set(regNum(i.a), res)
 }
 
 type in struct {
@@ -185,7 +185,7 @@ func (i *in) Exec(ctx *Context, cb *CB) {
 		panic("bad read")
 	}
 
-	ctx.RegFile[regNum(i.a)] = uint16(b[0])
+	ctx.RegFile.Set(regNum(i.a), uint16(b[0]))
 }
 
 type hlt struct{}
@@ -253,7 +253,7 @@ func (i *mod) Exec(ctx *Context, cb *CB) {
 	b := regOrVal(i.b, ctx.RegFile)
 	c := regOrVal(i.c, ctx.RegFile)
 	a := (b % c) % 32768
-	ctx.RegFile[regNum(i.a)] = a
+	ctx.RegFile.Set(regNum(i.a), a)
 }
 
 type mult struct {
@@ -269,7 +269,7 @@ func (i *mult) Exec(ctx *Context, cb *CB) {
 	b := regOrVal(i.b, ctx.RegFile)
 	c := regOrVal(i.c, ctx.RegFile)
 	a := (b * c) % 32768
-	ctx.RegFile[regNum(i.a)] = a
+	ctx.RegFile.Set(regNum(i.a), a)
 }
 
 type nop struct{}
@@ -286,7 +286,7 @@ func (i *not) ToString(st symtab.SymTab) string {
 }
 
 func (i *not) Exec(ctx *Context, cb *CB) {
-	ctx.RegFile[regNum(i.a)] = (^regOrVal(i.b, ctx.RegFile)) & 0x7fff
+	ctx.RegFile.Set(regNum(i.a), (^regOrVal(i.b, ctx.RegFile))&0x7fff)
 }
 
 type or struct {
@@ -299,7 +299,7 @@ func (i *or) ToString(st symtab.SymTab) string {
 }
 
 func (i *or) Exec(ctx *Context, cb *CB) {
-	ctx.RegFile[regNum(i.a)] = regOrVal(i.b, ctx.RegFile) | regOrVal(i.c, ctx.RegFile)
+	ctx.RegFile.Set(regNum(i.a), regOrVal(i.b, ctx.RegFile)|regOrVal(i.c, ctx.RegFile))
 }
 
 type ret struct{}
@@ -326,7 +326,7 @@ func (i *rmem) ToString(st symtab.SymTab) string {
 
 func (i *rmem) Exec(ctx *Context, cb *CB) {
 	val := ctx.RAM.Read(regOrVal(i.b, ctx.RegFile))
-	ctx.RegFile[regNum(i.a)] = val
+	ctx.RegFile.Set(regNum(i.a), val)
 }
 
 type out struct {
@@ -347,7 +347,12 @@ func (i *out) ToString(st symtab.SymTab) string {
 }
 
 func (i *out) Exec(ctx *Context, cb *CB) {
-	fmt.Print(string(byte(i.a)))
+	val := regOrVal(i.a, ctx.RegFile)
+	if ctx.Verbose {
+		fmt.Printf("=== out: %s (%d) ===\n", string(byte(val)), val)
+	} else {
+		fmt.Print(string(byte(val)))
+	}
 }
 
 type pop struct {
@@ -363,7 +368,7 @@ func (i *pop) Exec(ctx *Context, cb *CB) {
 	if !found {
 		panic("empty stack")
 	}
-	ctx.RegFile[regNum(i.a)] = val
+	ctx.RegFile.Set(regNum(i.a), val)
 }
 
 type push struct {
@@ -387,7 +392,7 @@ func (i *set) ToString(st symtab.SymTab) string {
 }
 
 func (i *set) Exec(ctx *Context, cb *CB) {
-	ctx.RegFile[regNum(i.res)] = regOrVal(i.src, ctx.RegFile)
+	ctx.RegFile.Set(regNum(i.res), regOrVal(i.src, ctx.RegFile))
 }
 
 type wmem struct {

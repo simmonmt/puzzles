@@ -1,6 +1,9 @@
 package memory
 
-import "fmt"
+import (
+	"fmt"
+	"io/ioutil"
+)
 
 type RAM [32768]uint16
 
@@ -18,6 +21,16 @@ func (r *RAM) Write(addr, val uint16) {
 	}
 
 	r[addr] = val
+}
+
+func DumpRAM(ram *RAM, path string) error {
+	vals := make([]byte, len(ram)*2)
+	for i, s := range ram {
+		vals[i*2] = byte(s & 0xff)
+		vals[i*2+1] = byte((s >> 8) & 0xff)
+	}
+
+	return ioutil.WriteFile(path, vals, 0644)
 }
 
 type RAMReader struct {

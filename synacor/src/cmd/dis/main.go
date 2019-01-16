@@ -6,12 +6,12 @@ import (
 	"io"
 	"log"
 	"os"
-	"strconv"
 
 	"comment"
 	"instruction"
 	"reader"
 	"symtab"
+	"util"
 )
 
 var (
@@ -103,17 +103,6 @@ func (sr *SaverReader) ValuesRead() []uint16 {
 	return values
 }
 
-func addrToName(addr uint16, st symtab.SymTab) string {
-	if ent, found := st.LookupAddr(uint(addr)); found {
-		off := addr - uint16(ent.Start)
-		if off == 0 {
-			return ent.Name
-		}
-		return fmt.Sprintf("%s+%d", ent.Name, off)
-	}
-	return strconv.Itoa(int(addr))
-}
-
 func dump(sr reader.Short, st symtab.SymTab, cReg comment.Registry) {
 	saverReader := NewSaverReader(sr)
 
@@ -144,7 +133,7 @@ func dump(sr reader.Short, st symtab.SymTab, cReg comment.Registry) {
 			break
 		}
 
-		fmt.Printf("%30s:  ", addrToName(addr, st))
+		fmt.Printf("%30s:  ", util.AddrToName(addr, st))
 
 		if *full {
 			fmt.Printf("%5d:  ", addr)
