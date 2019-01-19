@@ -1,0 +1,158 @@
+1. Foothils - don't leave
+  - north (to 2)
+
+2. Foothills - start
+  * tablet - use to see code
+  - doorway (to 3)
+  - south (to 1)
+
+3. dark cave a
+   - north (to 4)
+   - south (to 2)
+
+4. dark cave b
+   - north (to 5)
+   - south (to 3)
+
+5. dark cave c
+   - bridge (to 6)
+   - south (to 3)
+
+6. rope bridge
+   - continue (to 7)
+   - back (to 5)
+
+7. falling
+   - down (to 8)
+
+8. moss cavern a                     8a. moss cavern c
+   - west (to 9)                         * empty lantern
+   - east (to 8a)                        - west (to 8)
+
+9. moss cavern b
+   - east (to 8)
+   - passage (to 10)
+
+10. passage a
+   - cavern (to 9)
+   - ladder (to 12)
+   - darkness (to 11)
+
+11. passage b - pitch black (grue)
+   - continue (to 20)
+   - back (to 10)
+
+12. twisty passages a
+   You are in a maze of twisty little passages, all dimly lit by more bioluminescent moss.  There is a ladder here leading up.
+   - ladder (to 10)
+   - north (to 13)
+   - south (to 14)
+   - east (to 15)
+   - west (to 17)
+
+13. twisty passages b
+   You are in a twisty maze of little passages, all alike.
+   - north (to 14)
+   - south (to 12)
+   - west (to 13?)
+
+14. twisty passages c
+   You are in a maze of little twisty passages, all alike.
+   - north (to 12)
+   - south (to 13)
+   - east (to 14?)
+
+15. twisty passages d
+   You are in a maze of alike little passages, all twisty.
+   - north (to 16)
+   - south (to 15)
+   - west (to 12)
+   - east (dark, grue) (to 13)
+
+16. twisty passages e
+   You are in a maze of alike twisty passages, all little.
+   - north (to 14)
+   - east (to 13)
+   - south (to 16?)
+
+17. twisty passages f
+   You are in a little maze of twisty passages, all alike.
+   - north (to 17)
+   - south (to 18)
+   - east (to 12)
+
+18. twisty passages g
+   You are in a twisty alike of little passages, all maze.
+   - north (to 19)
+   - south (to 13)
+   - west (to 14)
+   - east (dark, grue)
+
+19. twisty passages h
+   You are in a maze of twisty little passages, all alike.
+   * can
+   - west (to 12)
+
+20. dark passage a
+   - west (to 21)
+   - east (to 11)
+
+21. dark passage b
+   - west (to 22)
+   - east (to 20)
+
+22. dark passage c
+   - west (to 23)
+   - east
+
+23. dark passage d
+   - west (to 24)
+   - east
+
+24. ruins a
+   - east (to 23)
+   - north (to 25)
+
+25. ruins b
+   * coin (red, two dots on one side)
+   - north (to 26)
+   - south
+   
+26. ruins c
+   note: _ + _ * _^2 + _^3 - _ = 399 (coins go in the _ spaces)
+   note: coins red 2, concave 7, corroded 3, blue 9, shiny 5
+   note: answer: blue red shiny concave corroded
+   - north  (locked until solved then to 31)
+   - south (to 25)
+   - east (to 27)
+   - west (to 29
+
+27. ruins d
+   * concave coin
+   - down (to 28)
+   - west (to 26)
+
+28. ruins e
+   * corroded coin
+   - up (to 27)
+
+29. ruins f
+   * blue coin
+   - up (to 30)
+   - east (to 26)
+
+30. ruins g
+   * shiny coin (5)
+   - down (to 29)
+
+31. ruins h
+   * teleporter (use to 32)
+   - south (to 26)
+
+32. synacor
+   * business card
+   * strange book
+   - outside (to 33)
+
+33. outside
+   - inside (to 32)
