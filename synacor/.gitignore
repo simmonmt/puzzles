@@ -1,3 +1,4 @@
+bin/coins
 bin/dis
 bin/vm
 pkg/
