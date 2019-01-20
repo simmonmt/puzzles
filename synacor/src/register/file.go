@@ -2,13 +2,14 @@ package register
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
 type File struct {
-	reg [8]uint16
+	reg [9]uint16
 }
 
 func (f *File) Get(num uint) uint16 {
@@ -25,14 +26,14 @@ func (f *File) Set(num uint, val uint16) {
 	f.reg[num] = val
 }
 
-func (f *File) Dump() {
+func (f *File) Dump(w io.Writer) {
 	for i := 0; i < len(f.reg); i++ {
 		if i != 0 {
-			fmt.Print(", ")
+			fmt.Fprint(w, ", ")
 		}
-		fmt.Printf("r%d=%d", i, f.reg[i])
+		fmt.Fprintf(w, "r%d=%d", i, f.reg[i])
 	}
-	fmt.Println()
+	fmt.Fprintln(w)
 }
 
 var (
@@ -54,7 +55,7 @@ func InitFromSpec(specs string) (*File, error) {
 				spec, err)
 		}
 
-		if regNum > 7 {
+		if regNum > 8 {
 			return nil, fmt.Errorf("illegal reg num %v in spec %v", regNum, spec)
 		}
 

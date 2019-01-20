@@ -3,9 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
-	"os"
 
 	"comment"
 	"instruction"
@@ -21,49 +19,6 @@ var (
 	symTabPath   = flag.String("symtab", "", "path to symbol table")
 	full         = flag.Bool("full", false, "include read bytes and raw addrs")
 )
-
-type BinIO struct {
-	fp *os.File
-}
-
-func NewBinIO(path string) (*BinIO, error) {
-	fp, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-
-	return &BinIO{fp}, nil
-}
-
-func (bio *BinIO) Read() (uint16, error) {
-	b := [2]byte{}
-	n, err := bio.fp.Read(b[:])
-	if n != 2 {
-		return 0, io.EOF
-	} else if err != nil {
-		return 0, err
-	}
-
-	var val uint16
-	val |= uint16(b[0])
-	val |= (uint16(b[1]) << 8)
-
-	return val, nil
-}
-
-func (bio *BinIO) Off() uint16 {
-	off, err := bio.fp.Seek(0, 1)
-	if err != nil {
-		panic("seek fail")
-	}
-	return uint16(off / 2)
-}
-
-func (bio *BinIO) Close() {
-	if err := bio.fp.Close(); err != nil {
-		panic(fmt.Sprintf("close fail: %v", err))
-	}
-}
 
 type SaverReader struct {
 	r  reader.Short
@@ -157,7 +112,7 @@ func dump(sr reader.Short, st symtab.SymTab, cReg comment.Registry) {
 		} else {
 			fmt.Printf("%-30s", inst.ToString(st))
 			if comment, found := cReg.GetSingle(int(addr)); found {
-				fmt.Print("// ", comment)
+				fmt.Printf("// %s", comment)
 			}
 			fmt.Println()
 		}
@@ -176,7 +131,7 @@ func main() {
 		log.Fatalf("--input is required")
 	}
 
-	bio, err := NewBinIO(*inputPath)
+	bio, err := util.NewBinIO(*inputPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -194,7 +149,7 @@ func main() {
 	if *commentsPath != "" {
 		var err error
 		if commentRegistry, err = comment.ReadFromPath(*commentsPath, symTab); err != nil {
-			log.Fatal(err)
+			log.Fatalf("failed to read comment registry: %v", err)
 		}
 	}
 

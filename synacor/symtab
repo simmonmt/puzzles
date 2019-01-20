@@ -1,3 +1,5 @@
+# Code
+
 selftest		2-884
 fail_no_rmem_op		1239-1261
 fail_no_wmem_op		1262-1284
@@ -6,16 +8,43 @@ fail_wmem_opwrite	941-977
 init_data		885-939
 decode_data 		1723-1766
 
+readline		1767-1840
 xor			2125-2148
 
-# in: r1  (mem ptr?)
-#     r2  (visitor)
-#
-# something r2+[0..n] while <= *r1
-# 
-func1			1458-1517
+word_iterate		1458-1517
 
-# calls func1 w/r2=out_r1
-func2			1518-1527
+print_string		1518-1527
 
-out_r1			1528-1530
+mainloop		2734-2963
+
+find_char		1571-1587
+char_matches_visitor	1605-1618
+word_iter_status	1543-1570
+
+out_r1_visitor		1528-1530
+
+lookup_command_name	1588-1604
+lookup_arg              5921-5963
+
+func2			1648-1666
+func3			1667-1722
+indirect_visitor	5964-5989
+
+go_handler		3245
+look_handler		2964
+help_handler		3333
+inv_handler		3362
+take_handler		3400
+drop_handler		3488
+use_handler		3568-3655
+
+teleporter_handler	5445-5720
+
+verify_r8		6027-6067
+
+# Data
+
+input_buf		25974-29005
+command_names		27398-27405
+command_funcs		27406-27413
+arg_names		27381-27397

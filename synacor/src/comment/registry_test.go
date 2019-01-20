@@ -12,7 +12,8 @@ func TestRead(t *testing.T) {
 	in := `
 		3 // foo
 		// bar
-		// baz
+                //
+		//   baz
 		5-15 
 		// two
 		10 // ten
@@ -27,7 +28,7 @@ func TestRead(t *testing.T) {
 	expected := registryImpl{
 		3: []*Comment{
 			&Comment{Single, 3, 3, []string{"foo"}},
-			&Comment{Block, 3, 3, []string{"bar", "baz"}},
+			&Comment{Block, 3, 3, []string{"bar", "", "  baz"}},
 		},
 		5: []*Comment{
 			&Comment{Block, 5, 15, []string{"two"}},
@@ -49,7 +50,7 @@ func TestRead(t *testing.T) {
 		t.Errorf(`GetSingle(3) = "%s", %v, want _, false`, comment, found)
 	}
 
-	expectedBlock := &Comment{Block, 3, 3, []string{"bar", "baz"}}
+	expectedBlock := &Comment{Block, 3, 3, []string{"bar", "", "  baz"}}
 	if block := cs.GetBlock(3); !reflect.DeepEqual(block, expectedBlock) {
 		t.Errorf(`GetBlock(3) = %+v, want %+v`, block, expectedBlock)
 	}

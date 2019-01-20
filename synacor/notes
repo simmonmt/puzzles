@@ -121,3 +121,296 @@ line or line range 400 or 400-435
 single colon means rest of line is annotation for that line
 double colon means following lines are block comment with blanks at beginning end of block?
 
+// string_iterate
+//   In:  r1=buf addr, r2=visitor, r3=visitor_arg
+//   Out: r2=0 if visitor stopped, !0 otherwise (contents len?)
+//        r3=set by visitor (preserved) 
+//
+// Invokes visitor once on each char in string
+// r3 used to pass back values from visitor
+// visitor can signal stop by setting r2=32767
+   func1:   1458:      2 32768              push r1
+ func1+2:   1460:      2 32771              push r4
+ func1+4:   1462:      2 32772              push r5
+ func1+6:   1464:      2 32773              push r6
+ func1+8:   1466:      2 32774              push r7
+ 
+func1+10:   1468:      1 32774 32768        set r7 r1                // r7=r1   // buf addr
+func1+13:   1471:      1 32773 32769        set r6 r2                // r6=r2   // visitor
+func1+16:   1474:     15 32772 32768        rmem r5, r1              // r5=*r1  // contents len
+func1+19:   1477:      1 32769     0        set r2 0                 // r2=0    // # contents bytes processed
+
+func1+22:   1480:      9 32771     1 32769  add r4, 1, r2            // r4=r2+1     // contents idx
+func1+26:   1484:      5 32768 32771 32772  gt r1, r4, r5            // if r4 > r5  // if run off contents
+func1+30:   1488:      7 32768  1507        jt r1 1507 <func1+49>    //   return    //   return
+func1+33:   1491:      9 32771 32771 32774  add r4, r4, r7           // r4=r4+r7    // cur contents byte addr
+func1+37:   1495:     15 32768 32771        rmem r1, r4              // r1=*r4      // r1 = cur contents byte
+func1+40:   1498:     17 32773              call r6                  // r6()        // visitor(r1=cur_contents)
+func1+42:   1500:      9 32769 32769     1  add r2, r2, 1            // r2++        // inc contents bytes processed
+func1+46:   1504:      7 32769  1480        jt r2 1480 <func1+22>    // if r2 > 0 { goto func1+22 }
+
+func1+49:   1507:      3 32774              pop r7
+func1+51:   1509:      3 32773              pop r6
+func1+53:   1511:      3 32772              pop r5
+func1+55:   1513:      3 32771              pop r4
+func1+57:   1515:      3 32768              pop r1
+func1+59:   1517:     18                    ret
+
+at the time of 'use teleporter', call tree looks like this:
+
+25974: 14 u s e _ t e l e p o r t e r
+
+mainloop+102
+  func3 (r1=25974, r2=32)
+    func5 (r1=25974, r3=32, r2=func4)
+      string_iterate (r1=25974, r3=32, r2/visitor=func4)
+
+func5 -> string_iter_status
+in: r1=string addr, r2=visitor, r3=visitor_arg
+out: r1=32767 if failure, visitor_arg otherwise
+
+mainloop+102
+  find_char (r1=25974, r2=32)  // find space
+    string_iter_status (r1=25974, r3=32, r2=char_matches_visitor)
+      string_iterate (r1=25974, r3=32, r2/visitor=char_matches_visitor)
+
+
+// find space. if space found, stash string length, truncate input to first word
+// by setting length to index of space. if no space found, pretend the space is
+// at the end of the read string.
+mainloop+104:   2838:      4 32769 32768 32767  eq r2, r1, 32767              // if space found
+mainloop+108:   2842:      8 32769  2848        jf r2 2848 <mainloop+114>     //   goto mainloop+114
+mainloop+111:   2845:     15 32768 25974        rmem r1, 25974                // r1=string length (point to end)
+mainloop+114:   2848:      1 32770 32768        set r3 r1                     // r3=r1
+mainloop+117:   2851:     15 32769 25974        rmem r2, 25974                // r2=string length
+mainloop+120:   2854:      2 32769              push r2                       // push string length
+mainloop+122:   2856:     16 25974 32770        wmem 25974, r3                // *25974=r3
+mainloop+125:   2859:      1 32768 27398        set r1 27398
+mainloop+128:   2862:      1 32769 25974        set r2 25974
+mainloop+131:   2865:     17  1588              call 1588
+// untruncate string (restore length value)
+mainloop+133:   2867:      3 32769              pop r2
+mainloop+135:   2869:     16 25974 32769        wmem 25974 <input_buf>, r2
+
+find_char
+if space found {
+   // r1=index
+   r3=index
+   r2=string length
+   push r2
+   write space index as string length
+} else {
+   r1=string length (point to end)
+   r3=string length
+   r2=string length
+   push r2
+   write string length as string length
+ }
+
+mainloop+131
+  func1 (r1=command_names, r2=input_buf) => status in r1
+    string_iter_status(r1=27398, r2=visitor/func2, r3=visitor_arg/input_buf)
+
+func2
+  func3
+
+let's look at input_buf and 27398.
+
+input_buf, after saying 'take tablet', is:
+
+$ od -Ad -t c -N 32 -j 51948 <ram_dump   # 25974*2=51948
+0051948  004  \0   t  \0   a  \0   k  \0   e  \0      \0   t  \0   a  \0
+0051964    b  \0   l  \0   e  \0   t  \0  \0  \0  \0  \0  \0  \0  \0  \0
+
+here's 27398:
+
+simmonmt-macbookpro4:synacor simmonmt$ od -Ad -t d2 -N 32 -j 54796 <ram_dump
+0054796         7   25943   25946   25951   25956   25960   25965   25970
+0054812         7    3245    2964    3333    3362    3400    3488    3568
+
+0054796         7      go    look    help     inv    take    drop     use
+0054812         7    3245    2964    3333    3362    3400    3488    3568
+
+
+// r1=32767 if no command match, idx if match,
+// r3=input_buf len
+//
+// if command match { r2=command_funcs+1+r1 } else { r2=command_funcs+1 /* go */; r1=r3=0 }
+mainloop+138:   2872:      4 32769 32768 32767  eq r2, r1, 32767           // if r1 != 32767
+mainloop+142:   2876:      8 32769  2885        jf r2 2885 <mainloop+151>  //   goto mainloop+151
+mainloop+145:   2879:      1 32768     0        set r1 0                   // no command match
+mainloop+148:   2882:      1 32770     0        set r3 0                   // r1=r3=0
+mainloop+151:   2885:      9 32769 27406     1  add r2, 27406, 1           // r2=27407
+mainloop+155:   2889:      9 32769 32769 32768  add r2, r2, r1             // r2=r2+r1 // command func idx
+
+// r2 = handler address
+mainloop+159:   2893:     15 32769 32769        rmem r2, r2                // r2=*r2
+
+// if input only contains a command (i.e. no arg), goto mainloop+210 (exec)
+mainloop+162:   2896:     15 32771 25974        rmem r4, 25974 <input_buf> // r4=input_buf len (the full len)
+mainloop+165:   2899:      4 32771 32771 32770  eq r4, r4, r3              // if r4==r3  // if input only command
+mainloop+169:   2903:      7 32771  2944        jt r4 2944 <mainloop+210>  //   goto mainloop+210
+
+// if command match { r1=32768-cmd_len } else { r1 = 0 }
+mainloop+172:   2906:     10 32768 32770 32767  mult r1, r3, 32767         // r1=(r3*32767)%32767 // r1=r3==0?0:32768-r3
+
+// r4=(input_buf len)+r1  (input_buf len) - cmd_len  // arg len - 1
+mainloop+176:   2910:     15 32771 25974        rmem r4, 25974 <input_buf> // r4=input_buf len
+mainloop+179:   2913:      9 32771 32768 32771  add r4, r1, r4             // r4=r4+r1
+
+// if command match { r4=r4-1  // r4=arglen; mod 32 but that doesn't matter unless overrun }
+mainloop+183:   2917:      8 32770  2924        jf r3 2924 <mainloop+190>  // if r3 == 0 { goto mainloop+190 }
+mainloop+186:   2920:      9 32771 32771 32767  add r4, r4, 32767          // r4=(r4+32767)%32768
+mainloop+190:   2924:     11 32771 32771    32  mod r4, r4, 32             // r4=r4%32
+
+// r3 = cmd len (0 if no match)
+// r4 = arg len
+
+// r1 = input_buf + r3/cmdlen  // points to last cmd char
+mainloop+194:   2928:      9 32768 25974 32770  add r1, 25974, r3          // r1=25974+r3 (cmd len)
+
+// if command match { r1++  // points to space }
+mainloop+198:   2932:      8 32770  2939        jf r3 2939 <mainloop+205>  // if r3 == 0 { goto mainloop+205 }
+mainloop+201:   2935:      9 32768 32768     1  add r1, r1, 1              // r1=r1+1
+
+// write arg len to space (short before arg)
+mainloop+205:   2939:     16 32768 32771        wmem r1, r4                // *r1=r4
+
+// go exec. r1=arg ptr
+mainloop+208:   2942:      6  2950              jmp 2950 <mainloop+216>    // goto mainloop+216
+
+// zero input_buf len, simulating empty arg
+mainloop+210:   2944:      1 32768 25974        set r1 25974               // r1=input_buf
+mainloop+213:   2947:     16 32768     0        wmem r1, 0                 // *r1=0  // clear input
+
+// call handler
+mainloop+216:   2950:     17 32769              call r2                    // r2()
+
+// if r2 == 0 { return // halt? } else { goto mainloop+8 }
+mainloop+218:   2952:      7 32769  2742        jt r2 2742 <mainloop+8>    // if r2 > 0 goto mainloop+8
+mainloop+221:   2955:      3 32771              pop r4
+mainloop+223:   2957:      3 32770              pop r3
+mainloop+225:   2959:      3 32769              pop r2
+mainloop+227:   2961:      3 32768              pop r1
+mainloop+229:   2963:     18                    ret
+
+
+// 3 cases -- unknown command, no arg command, command with arg
+handler = command_funcs+1+r1
+command with arg: r1=arg string; handler()
+command without arg: r1=empty string; handler()
+unknown command: TBD go_handler()
+if r2 == 0 { halt } else { goto mainloop+8 }
+
+handler addresses:
+
+0054796         7      go    look    help     inv    take    drop     use
+0054812         7    3245    2964    3333    3362    3400    3488    3568
+
+indirect_visitor
+// indirect_visitor
+//   In: r1=table word, r2 table index, r3=visitor_arg/arg string
+//   Out: r2=32767, r3=table_word if func3 != 0
+//
+// Calls func3 on *r1, halts iteration if func3 != 0
+//
+// r2=r3/arg_string
+// r1=r1/table_word  // weird
+// r1=*r1
+// func3()
+// r2=table index
+// if r1 (set by func3?) != 0 {
+//   r3=table index
+//   r2=32767 // halt iteration
+// }
+
+
+   use_handler:   3568:      2 32768              push r1
+ use_handler+2:   3570:      2 32769              push r2
+ use_handler+4:   3572:     17  5921              call 5921 <lookup_arg>
+ use_handler+6:   3574:      8 32768  3601        jf r1 3601 <use_handler+33>   // if no name_ptr goto +33
+ use_handler+9:   3577:      9 32769 32768     2  add r2, r1, 2                 // r2=r1(name_ptr)+2
+use_handler+13:   3581:     15 32769 32769        rmem r2, r2                   // r2=*r2
+use_handler+16:   3584:      7 32769  3601        jt r2 3601 <use_handler+33>   // if r2 > 0 { goto +33 }
+use_handler+19:   3587:      9 32769 32768     3  add r2, r1, 3                 // r2=r1(name_ptr)+3
+use_handler+23:   3591:     15 32769 32769        rmem r2, r2                   // r2=*r2
+use_handler+26:   3594:      8 32769  3627        jf r2 3627 <use_handler+59>   // if r2 == 0 { goto +33 }
+use_handler+29:   3597:     17 32769              call r2                       // call handler
+use_handler+31:   3599:      6  3651              jmp 3651 <use_handler+83>
+
+
+
+values as of the end when we want to use the teleporter
+
+for i in 2668   2672   2676   2680   2684   2688   2692   2696   2700   2704   2708   2712   2724   2728   2716   2720 ; do name=$(bin/read_string --symtab symtab --input ram_dump --addr $i  --indirect) ; addr1=$(od -t d2 -N 2 -j $(((i+2)*2)) ram_dump |head -1 |one 2) ; addr2=$(od -t d2 -N 2 -j $(((i+3)*2)) ram_dump |head -1 |one 2) ; printf '%-15s %5s %5s\n' "$name" $addr1 $addr2 ; done
+
+tablet           2317  4720
+empty lantern    2357     0
+lantern         32767  4885
+lit lantern     32767  4931
+can              2417  4799
+red coin         2452  5360
+corroded coin    2473  5377
+shiny coin       2483  5394
+concave coin     2468  5411
+blue coin        2478  5428
+teleporter       2463  5445
+business card    2488     0
+strange book     2488     0
+journal          2553     0
+orb              2623     0
+mirror           2643  5721
+
+forcing an r8 value with  a ram override that gets us past self test:
+
+cat commands - |bin/vm --ram challenge.bin --symtab symtab --init_reg=r8=1 --override_ram=521=21,522=21,523=21
+
+a halt after what i think is the verification routine:
+
+cat commands - |bin/vm --ram challenge.bin --symtab symtab --init_reg=r8=1 --override_ram=521=21,522=21,523=21 --halt_pc=5491
+
+6027 has the routine
+
+r0=0, r1=4, r2=1, r3=3, r4=10, r5=101, r6=0, r7=0, r8=1
+                          6027: jt r1 6035
+
+
+
+   verify_r8:   6027:      7 32768  6035        jt r1 6035 <verify_r8+8>
+ verify_r8+3:   6030:      9 32768 32769     1  add r1, r2, 1
+ verify_r8+7:   6034:     18                    ret
+ verify_r8+8:   6035:      7 32769  6048        jt r2 6048 <verify_r8+21>
+verify_r8+11:   6038:      9 32768 32768 32767  add r1, r1, 32767
+verify_r8+15:   6042:      1 32769 32775        set r2 r8
+verify_r8+18:   6045:     17  6027              call 6027 <verify_r8>
+verify_r8+20:   6047:     18                    ret
+verify_r8+21:   6048:      2 32768              push r1
+verify_r8+23:   6050:      9 32769 32769 32767  add r2, r2, 32767
+verify_r8+27:   6054:     17  6027              call 6027 <verify_r8>
+verify_r8+29:   6056:      1 32769 32768        set r2 r1
+verify_r8+32:   6059:      3 32768              pop r1
+verify_r8+34:   6061:      9 32768 32768 32767  add r1, r1, 32767
+verify_r8+38:   6065:     17  6027              call 6027 <verify_r8>
+verify_r8+40:   6067:     18                    ret
+
+verify(r1,r2)
+  if r1 == 0 {
+    r1++
+    ret
+  }
+  if r2 == 0 {
+    r1--
+    r2=r8
+    r1,r2=verify(r1,r2)
+    ret
+  }
+  savr1=r1
+  r2--
+  r1,r2=verify(r1,r2)
+  r2=r1
+  r1=savr1
+  r1--
+  r1,r2=verify(r1,r2)
+}
+
+

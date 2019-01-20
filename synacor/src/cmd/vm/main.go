@@ -3,9 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"math"
 	"os"
+	"os/signal"
+	"strconv"
+	"strings"
+	"syscall"
 
 	"instruction"
 	"memory"
@@ -15,15 +20,40 @@ import (
 )
 
 var (
-	ramPath     = flag.String("ram", "", "ram data load")
-	symTabPath  = flag.String("symtab", "", "path to symbol table")
-	verbose     = flag.Bool("verbose", false, "verbose")
-	dumpReg     = flag.Bool("dump_reg", false, "in verbose, dump registers after each instruction")
-	initReg     = flag.String("init_reg", "", "initial register values, as r1=x,r2=y,...")
-	startPCFlag = flag.String("start_pc", "", "initial pc")
-	haltPCFlag  = flag.String("halt_pc", "", "halt after executing this instruction")
-	ramDumpPath = flag.String("ram_dump", "", "where to dump ram on halt")
+	ramPath         = flag.String("ram", "", "ram data load")
+	symTabPath      = flag.String("symtab", "", "path to symbol table")
+	verbose         = flag.Bool("verbose", false, "verbose")
+	verboseFilePath = flag.String("verbose_file", "", "where to write verbose output; stdout if empty")
+	dumpReg         = flag.Bool("dump_reg", false, "in verbose, dump registers after each instruction")
+	initReg         = flag.String("init_reg", "", "initial register values, as r1=x,r2=y,...")
+	startPCFlag     = flag.String("start_pc", "", "initial pc")
+	haltPCFlag      = flag.String("halt_pc", "", "halt after executing this instruction")
+	ramDumpPath     = flag.String("ram_dump", "", "where to dump ram on halt")
+	overrideRAM     = flag.String("override_ram", "", "force some RAM values at start, as addr=val,addr=val,...")
 )
+
+func applyRAMOverrides(ram *memory.RAM, overrides string) error {
+	for _, pair := range strings.Split(overrides, ",") {
+		parts := strings.SplitN(pair, "=", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("bad pair %v", pair)
+		}
+
+		addr, err := strconv.ParseUint(parts[0], 10, 16)
+		if err != nil {
+			return fmt.Errorf("bad addr %v in pair %v", parts[0], pair)
+		}
+
+		val, err := strconv.ParseUint(parts[1], 10, 16)
+		if err != nil {
+			return fmt.Errorf("bad val %v in pair %v", parts[1], pair)
+		}
+
+		ram.Write(uint16(addr), uint16(val))
+	}
+
+	return nil
+}
 
 func initRAM(path string) (*memory.RAM, error) {
 	fp, err := os.Open(path)
@@ -82,6 +112,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if *overrideRAM != "" {
+		if err := applyRAMOverrides(ram, *overrideRAM); err != nil {
+			log.Fatalf("failed to apply RAM overrides: %v", err)
+		}
+	}
+
 	var symTab symtab.SymTab = &symtab.NoEntriesSymTab{}
 	if *symTabPath != "" {
 		var err error
@@ -101,17 +137,41 @@ func main() {
 
 	startPC, haltPC := parsePCFlagsOrDie(symTab)
 
+	hupChan := make(chan os.Signal, 1)
+	signal.Notify(hupChan, syscall.SIGHUP)
+
+	var verboseWriter io.Writer
+	if *verboseFilePath != "" {
+		verboseFile, err := os.OpenFile(*verboseFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Fatalf("failed to open verbose file %v: %v", *verboseFilePath, err)
+		}
+		defer verboseFile.Close()
+
+		verboseWriter = verboseFile
+	} else {
+		verboseWriter = os.Stdout
+	}
+
 	stack := memory.NewStack()
 
 	iCtx := instruction.Context{
-		RAM:     ram,
-		RegFile: regFile,
-		Stack:   stack,
-		Verbose: *verbose,
+		RAM:           ram,
+		RegFile:       regFile,
+		Stack:         stack,
+		Verbose:       verbose,
+		VerboseWriter: verboseWriter,
 	}
 
 	pc := startPC
 	for {
+		select {
+		case <-hupChan:
+			*verbose = !*verbose
+			fmt.Printf("verbose now %v\n", *verbose)
+		default:
+		}
+
 		reader := memory.NewRAMReader(ram, pc)
 
 		inst, numRead, err := instruction.Read(reader)
@@ -120,7 +180,7 @@ func main() {
 		}
 
 		if *verbose {
-			fmt.Printf("%30s: %s\n", util.AddrToName(pc, symTab),
+			fmt.Fprintf(verboseWriter, "%30s: %s\n", util.AddrToName(pc, symTab),
 				inst.ToString(symTab))
 		}
 
@@ -130,8 +190,8 @@ func main() {
 
 		inst.Exec(&iCtx, &cb)
 
-		if *dumpReg {
-			regFile.Dump()
+		if *verbose && *dumpReg {
+			regFile.Dump(verboseWriter)
 		}
 
 		if haltPC != math.MaxUint16 && haltPC == pc {

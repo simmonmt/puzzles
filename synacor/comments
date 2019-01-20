@@ -9,3 +9,136 @@ xor
 
 fail_wmem_opwrite
 // wmem opwrite fail <hlt>
+
+readline
+// readline()
+//
+// in: r1 = buf len, r2 = buf ptr
+// out: written to *r2:
+//      len byte byte byte byte (excluding nl)
+readline+10 // buf end
+readline+14 // write ptr
+readline+17 // count; written to *r2
+readline+20 // for {
+readline+24 //   r1++
+readline+28 //   if r1 > r3 { break }
+readline+31 //   r5 = read()
+readline+33 //   if r5 == 10 { break }
+readline+40 //   *r1=r5
+readline+43 //   r6++
+readline+47 // }
+readline+52 // while r5 != 10 {
+readline+56 //   r5 = read()
+readline+59 // }
+readline+61 // return
+
+mainloop+84  // read line to 25974
+mainloop+87  // .
+mainloop+90  // .
+mainloop+92  // print blank
+mainloop+94  // print blank
+mainloop+99  // find ' ' in input
+mainloop+102 // index saved to r1
+
+mainloop+104 // if space found, stash string length,
+mainloop+108 // truncate input to space (to first
+mainloop+111 // word) by setting length to index of
+mainloop+114 // space. if no space found, pretend the
+mainloop+117 // space is at the end of the input.
+
+mainloop+128 // input_buf
+mainloop+133 // untruncate the input (restore length)
+mainloop+135 // see mainloop+104
+
+mainloop+138 // r1=32767 if no cmd match, cmd idx if match
+mainloop+142 // r3=input_buf len
+mainloop+145 // handler = command_funcs+1+(match?r1:0)
+mainloop+148 // command with arg: r1=arg string; handler()
+mainloop+151 // command w/o arg: r1=empty string; handler()
+mainloop+155 // unknown command: TBD; go_handler()
+mainloop+216 // call handler
+mainloop+218 // if r2 == 0 { halt } else { goto mainloop+8 }
+
+word_iterate
+// word_iterate
+//   In:  r1=addr, r2=visitor, r3=visitor_arg
+//   Out: r2=0 if visitor stopped, !0 otherwise (contents len?)
+//        r3=set by visitor (preserved) 
+//
+// Invokes visitor once on each word in word array
+// r3 used to pass back values from visitor
+// visitor can signal stop by setting r2=32767
+
+find_char
+// find_char
+//   In: r1=string addr, r2=char to find
+//   Out: r1=32767 if not found, char index otherwise
+find_char+7  // r2 = char_matches_visitor
+
+char_matches_visitor
+// char_matches_visitor
+//   In: r1=char (clobbered), r2=content idx, r3=visitor_arg
+//   Out: if r1=r3 { r2=32767, r3=content idx }
+//
+// Used as a word_iterate visitor. Stops iteration when the
+// iteration char (r1) is the requested value (r3). Returns the
+// index of the requested value in the string (not including the
+// length byte)
+
+out_r1_visitor
+// out_r1_visitor
+//   In: r1=char
+//
+// Write the passed char to output
+
+word_iter_status
+// word_iter_status
+//   In: r1=string addr, r2=visitor, r3=visitor_arg
+//   Out: r1=32767 if failure, visitor_arg otherwise
+//        r3=visitor_arg as-is
+
+print_string
+// print_string
+//   In: r1=string addr
+//
+// Prints a string to output
+
+lookup_command_name
+// lookup_command_name
+//   In: r1=command_names, r2=input_buf
+//   Out: r1=32767 if no match, index if match
+
+func2
+// visitor
+//   In: r1=char, r2=content idx, r3=visitor_arg
+//
+// func3(r1=char, r2=visitor_arg)
+// if r1 == 0 { return } else { r3/visitor_arg=char index, r2=32767 (stop iteration) }
+
+func3
+// func3
+//   In: r1=char, r2=visitor_arg (string)
+//   Out: r1=1/0, r2=???
+
+indirect_visitor
+// indirect_visitor
+//   In: r1=table word, r2 table index, r3=visitor_arg/arg string
+//   Out: r2=32767, r3=table_index if func3 != 0
+//
+// Calls func3 on *r1, halts iteration if func3 != 0
+
+indirect_visitor+5 // nop? does someone overwrite?
+
+use_handler+6  // if no name_ptr goto +33
+use_handler+9  // r2=r1(name_ptr)+2
+use_handler+13 // r2=*r2
+use_handler+16 // if r2 > 0 { goto +33 }
+use_handler+19 // r2=r1(name_ptr)+3
+use_handler+23 // r2=*r2
+use_handler+26 // if r2 == 0 { goto +33 }
+use_handler+29 // call handler
+
+teleporter_handler+160 // target when r8=0
+
+verify_r8
+// verifies r8 for using the teleporter

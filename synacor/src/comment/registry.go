@@ -92,7 +92,7 @@ func (r registryImpl) GetBlock(line int) *Comment {
 
 const (
 	addrOrRange = `(\d+)(?:-(\d+))?`
-	lineComment = `//\s+(\S.*)`
+	lineComment = `//(?:\s(.*))?`
 )
 
 var (

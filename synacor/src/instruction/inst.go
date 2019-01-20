@@ -2,6 +2,7 @@ package instruction
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"unicode"
@@ -13,10 +14,11 @@ import (
 )
 
 type Context struct {
-	RAM     *memory.RAM
-	RegFile *register.File
-	Stack   *memory.Stack
-	Verbose bool
+	RAM           *memory.RAM
+	RegFile       *register.File
+	Stack         *memory.Stack
+	Verbose       *bool
+	VerboseWriter io.Writer
 }
 
 type CB struct {
@@ -348,11 +350,10 @@ func (i *out) ToString(st symtab.SymTab) string {
 
 func (i *out) Exec(ctx *Context, cb *CB) {
 	val := regOrVal(i.a, ctx.RegFile)
-	if ctx.Verbose {
-		fmt.Printf("=== out: %s (%d) ===\n", string(byte(val)), val)
-	} else {
-		fmt.Print(string(byte(val)))
+	if *ctx.Verbose {
+		fmt.Fprintf(ctx.VerboseWriter, "=== out: %s (%d) ===\n", string(byte(val)), val)
 	}
+	fmt.Print(string(byte(val)))
 }
 
 type pop struct {
@@ -406,9 +407,6 @@ func (i *wmem) ToString(st symtab.SymTab) string {
 func (i *wmem) Exec(ctx *Context, cb *CB) {
 	addr := regOrVal(i.a, ctx.RegFile)
 	val := regOrVal(i.b, ctx.RegFile)
-	if ctx.Verbose {
-		fmt.Printf("writing %v to %v\n", val, addr)
-	}
 	ctx.RAM.Write(addr, val)
 }
 
