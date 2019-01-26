@@ -1,2 +1,4 @@
 github.com/HuKeping/rbtree v0.0.0-20180131135737-0a7018020338 h1:CXjOX03U+fmlg08NUdA56/d7sgf9njwwGoGHcvZ0xlc=
 github.com/HuKeping/rbtree v0.0.0-20180131135737-0a7018020338/go.mod h1:bODsl3NElqKlgf1UkBLj67fYmY5DsqkKrrYm/kMT/6Y=
+github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c h1:964Od4U6p2jUkFxvCydnIczKteheJEzHRToSGK3Bnlw=
+github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c/go.mod h1:lNA+9X1NB3Zf8V7Ke586lFgjr2dZNuvo3lPJSGZ5JPQ=
