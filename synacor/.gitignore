@@ -1,5 +1,2 @@
-bin/coins
-bin/dis
-bin/read_string
-bin/vm
+bin/
 pkg/

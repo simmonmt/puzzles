@@ -395,7 +395,7 @@ verify_r8+40:   6067:     18                    ret
 
 verify(r1,r2)
   if r1 == 0 {
-    r1++
+    r1=r2+1
     ret
   }
   if r2 == 0 {
@@ -412,5 +412,39 @@ verify(r1,r2)
   r1--
   r1,r2=verify(r1,r2)
 }
+
+func verify(r1,r2 uint16) (uint16, uint16)
+  if r1 == 0 {
+    return r2+1,r2
+  }
+  if r2 == 0 {
+    return verify(r1-1, r8)
+  }
+
+  r2,_=verify(r1,r2-1)
+
+  return verify(r1-1,r2)
+}
+
+called with r1=4,r2=1
+
+func verify(a,b uint16) (uint16, uint16)
+  if a == 0 {
+    return b+1,b
+  }
+  if b == 0 {
+    return verify(a-1, r8)
+  }
+
+  b,_=verify(a,b-1)
+
+  return verify(a-1,b)
+}
+
+returns r1=6,r2=5 when r8=25734 (cmd/verify)
+
+to run with verify call nopped out and r8 set properly:
+
+cat commands - | bin/vm --ram challenge.bin --halt_pc=6027 --ram_dump=ram_dump.6027 --init_reg=r8=25734  --override_ram=521=21,522=21,523=21,5485=6,5488=5,5489=21,5490=21
 
 

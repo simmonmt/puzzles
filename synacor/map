@@ -156,3 +156,79 @@
 
 33. outside
    - inside (to 32)
+
+----------------
+
+34. beach a (reached with teleporter with non-zero r8)
+   - west (to 35)
+   - east (to 37)
+   - north (to 36)
+
+35. beach b
+   - east (to 34)
+   - north (to 36)
+
+36. tropical island a
+   - north (to 39)
+   - south (to 34)
+   - east (to 38)
+
+37. beach c
+   - west (to 34)
+   - north (to 38)
+
+38. tropical island b (waterfall)
+   - north
+   - south (to 37)
+   - west (to 36)
+
+39. tropical island c
+   - north (to 40)
+   - south (to 36)
+
+40. tropical island d
+   - north (to 41)
+   - south (to 39)
+
+41. tropical island e (sliver of light)
+   - north (to 41)
+   - south (to 40)
+
+42. tropical island f (treasure access)
+   - north (to 42)
+   - south (to 41)
+
+43. tropical cave a (entrance)
+   - north (to 44)
+   - south (to 42)
+
+44. tropical cave b (fireflies slowly drift)
+   - north (to 45)
+   - south (to 43)
+
+45. tropical cave c (the cave is a little wider here, camp)
+   - north (to 47)
+   - south (to 44)
+   - east (to 46)
+
+46. tropical cave alcove
+   * journal
+   - west (to 45)
+
+47. tropical cave d (this tunnel slopes)
+   - north (to 48)
+   - south (to 45)
+
+48. vault antechamber
+   * orb - 22 on pedestal
+   - north
+   - east
+   - south (to 47)
+
+vault says 30
+
++  8  - D1
+4  * 11  *
++  4  - 18
+A  -  9  *
+X
