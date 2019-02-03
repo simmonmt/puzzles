@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"unicode"
 
 	"symtab"
 	"util"
@@ -71,7 +72,12 @@ func main() {
 		}
 
 		if *dumpChar {
-			fmt.Printf("%s", string(byte(v&0xff)))
+			b := byte(v)
+			if unicode.IsPrint(rune(b)) {
+				fmt.Print(string(b))
+			} else {
+				fmt.Printf("\\%02x", b)
+			}
 		} else {
 			fmt.Printf("%5d  ", v)
 		}
