@@ -6,8 +6,6 @@ import (
 	"os"
 	"reflect"
 	"testing"
-
-	"logger"
 )
 
 type helperNode struct {
@@ -107,7 +105,7 @@ func TestFScoreMap(t *testing.T) {
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-	logger.Init(true)
+	//logger.Init(true)
 
 	os.Exit(m.Run())
 }
