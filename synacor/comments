@@ -140,5 +140,27 @@ use_handler+29 // call handler
 
 teleporter_handler+160 // target when r8=0
 
+vault_door_check+6 // r1=*2718, skips routine if true
+vault_door_check+12 // as you approach the vault door
+vault_door_check+27 // number on vault door flashes black
+vault_door_check+32 // orb evaporates out of your hands
+vault_door_check+41 // number on vault door flashes white
+vault_door_check+56 // hourglass ran out
+vault_door_check+61 // go to evaporates
+vault_door_check+63 // door unlocks
+
+func1+12 // if orb_steps < 30000 {
+func1+15 //   orb_steps++
+func1+26 // }
+
+func4
+// func4
+//   In: r1 (mem addr),r2,r3 (mem addr)
+//   Out: ??
+//
+// r1=*r1
+// call 2248
+// *r2=r1 ^ r3
+
 verify_r8
 // verifies r8 for using the teleporter

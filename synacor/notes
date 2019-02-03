@@ -448,3 +448,91 @@ to run with verify call nopped out and r8 set properly:
 cat commands - | bin/vm --ram challenge.bin --halt_pc=6027 --ram_dump=ram_dump.6027 --init_reg=r8=25734  --override_ram=521=21,522=21,523=21,5485=6,5488=5,5489=21,5490=21
 
 
+bottom row then right column up to vault, in an attempt to see what
+the vault room does. maybe there's a simple code change that'll get us
+past the door? solving this seems .. painful.
+
+------------
+As you enter the room, the orb briefly flashes yellow.  The number on the floor vibrates strangely beneath your feet.
+
+As you approach the vault door, the number on the vault door flashes black.  The orb evaporates out of your hands.
+
+== Vault Door ==
+You stand before the door to the vault; it has a large '30' carved into it.  Affixed to the wall near the door, there is a running hourglass which never seems to run out of sand.
+
+The floor of this room is a large mosaic depicting the number '1'.
+
+There are 3 exits:
+- south
+- west
+- vault
+
+What do you do?
+------------
+
+There's no straight comparison with 30. :-(
+
+Looked for the 'evaporates' string by searching the verbose output for writes of 'v'.
+
+4565 calls print_string with 26398. 4565 is hitherto-unknown code.
+
+26398: "  The orb evaporates out of your hands.\0a\0a"
+
+this erases the vault code check
+4553=1,4554=32768,4555=1,4556=21
+
+... but the eighth code seems to be generated using values that are
+set by the path through the vault lock rooms, so nopping it out
+doesn't work -- it makes an invalid code.
+
+orb_timer (3593) is monotonic/sequential. it starts at zero when the
+orb is grabbed, and increases by 1 with each step. what's the limit?
+
+[3,0,30 2,1,31 1,0,42 0,1,34 1,2,30 0,1,26 0,3,22]
+{{0 3} 22}
+{0 2}
+{{0 1} 26}
+{0 2}
+{{1 2} 30}
+{0 2}
+{{0 1} 34}
+{0 0}
+{{1 0} 42}
+{2 0}
+{{2 1} 31}
+{2 0}
+{{3 0} 30}
+go north
+go north
+go south
+go east
+go west
+go north
+go north
+go east
+go east
+go south
+go north
+go east
+
+*  8  - D1
+4  * 11  *
++  4  - 18
+A  -  9  *
+X
+
+final code:
+
+YqVqIqTObAOu
+
+reversed is: uOAbOTqIqVqY
+mirrored is: uOAdOTpIpVpY
+
+success!
+
+final command is
+
+cat commands-vault - | bin/vm --ram challenge.bin --ram_dump=ram_dump.6027 --init_reg=r8=25734  --override_ram=521=21,522=21,523=21,5485=6,5488=5,5489=21,5490=21 --symtab symtab
+
+521-523 nop out a verification that r8 is zero
+5485-5490 replace a call to the long verifier

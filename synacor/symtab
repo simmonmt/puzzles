@@ -42,9 +42,17 @@ teleporter_handler	5445-5720
 
 verify_r8		6027-6067
 
+func1			4405-4514
+func4			4515-4532
+
+vault_door_check	4533-4610
+
 # Data
 
 input_buf		25974-29005
 command_names		27398-27405
 command_funcs		27406-27413
 arg_names		27381-27397
+orb_value		3952
+orb_steps		3953
+orb_unk			3954-3957
